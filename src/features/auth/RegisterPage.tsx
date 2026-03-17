@@ -2,11 +2,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserPlus, Mail, Lock, User, Loader2, KeyRound, ArrowRight } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../../core/useAuthStore';
 import { cn } from '../../core/cn';
 import { toast } from 'sonner';
-import { useState } from 'react';
 
 const registerSchema = z.object({
   displayName: z.string().min(2, 'Минимум 2 символа'),
@@ -18,21 +17,14 @@ const registerSchema = z.object({
   path: ['confirmPassword'],
 });
 
-const otpSchema = z.object({
-  code: z.string().length(6, 'Код должен состоять из 6 цифр').regex(/^\d+$/, 'Только цифры'),
-});
-
 type RegisterFormData = z.infer<typeof registerSchema>;
-type OtpFormData = z.infer<typeof otpSchema>;
 
 /**
  * Registration page with glassmorphism styling.
  */
 export function RegisterPage() {
   const navigate = useNavigate();
-  const { register: authRegister, verifyOtp, loading } = useAuthStore();
-  const [step, setStep] = useState<'form' | 'otp'>('form');
-  const [registeredEmail, setRegisteredEmail] = useState<string>('');
+  const { register: authRegister, loading } = useAuthStore();
 
   const {
     register,
@@ -42,32 +34,13 @@ export function RegisterPage() {
     resolver: zodResolver(registerSchema),
   });
 
-  const {
-    register: registerOtp,
-    handleSubmit: handleOtpSubmit,
-    formState: { errors: otpErrors },
-  } = useForm<OtpFormData>({
-    resolver: zodResolver(otpSchema),
-  });
-
   const onSubmit = async (data: RegisterFormData) => {
     const { error } = await authRegister(data.email, data.password, data.displayName);
     if (error) {
       toast.error(error);
     } else {
-      setRegisteredEmail(data.email);
-      setStep('otp');
       toast.success('Код подтверждения отправлен на ваш email');
-    }
-  };
-
-  const onOtpSubmit = async (data: OtpFormData) => {
-    const { error } = await verifyOtp(registeredEmail, data.code);
-    if (error) {
-      toast.error(error);
-    } else {
-      toast.success('Аккаунт успешно подтвержден! Вы можете войти.');
-      navigate('/login');
+      navigate(`/verify-otp?email=${encodeURIComponent(data.email)}`);
     }
   };
 
@@ -78,25 +51,16 @@ export function RegisterPage() {
       <div className="glass-card p-8 w-full max-w-md animate-scale-in relative z-10">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-secondary/15 mb-4">
-            {step === 'form' ? (
-              <UserPlus className="w-8 h-8 text-brand-secondary" />
-            ) : (
-              <KeyRound className="w-8 h-8 text-brand-secondary" />
-            )}
+            <UserPlus className="w-8 h-8 text-brand-secondary" />
           </div>
-          <h1 className="text-2xl font-bold text-surface-100">
-            {step === 'form' ? 'Регистрация' : 'Подтверждение Email'}
-          </h1>
+          <h1 className="text-2xl font-bold text-surface-100">Регистрация</h1>
           <p className="text-surface-400 text-sm mt-1">
-            {step === 'form' 
-              ? 'Создайте аккаунт для семейного бюджета' 
-              : `Введите 6-значный код, отправленный на ${registeredEmail}`}
+            Создайте аккаунт для семейного бюджета
           </p>
         </div>
 
-        {step === 'form' ? (
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {/* Display Name */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Display Name */}
             <div>
               <label htmlFor="reg-name" className="block text-sm font-medium text-surface-300 mb-1.5">
                 Имя
@@ -206,57 +170,6 @@ export function RegisterPage() {
               )}
             </button>
           </form>
-        ) : (
-          <form onSubmit={handleOtpSubmit(onOtpSubmit)} className="space-y-4">
-            <div>
-              <label htmlFor="opt-code" className="block text-sm font-medium text-surface-300 mb-1.5">
-                Код из Email
-              </label>
-              <div className="relative">
-                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                <input
-                  id="opt-code"
-                  type="text"
-                  maxLength={6}
-                  autoComplete="one-time-code"
-                  className={cn(
-                    'glass-input w-full pl-10 pr-4 py-3 text-center tracking-widest text-lg focus-ring',
-                    otpErrors.code && 'border-danger'
-                  )}
-                  placeholder="123456"
-                  {...registerOtp('code')}
-                />
-              </div>
-              {otpErrors.code && (
-                <p className="text-danger text-xs mt-1 text-center">{otpErrors.code.message}</p>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn btn-primary btn-lg w-full mt-6"
-            >
-              {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <>
-                  Подтвердить
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </>
-              )}
-            </button>
-            
-            <button
-              type="button"
-              onClick={() => setStep('form')}
-              className="btn btn-ghost w-full mt-4"
-              disabled={loading}
-            >
-              Изменить email
-            </button>
-          </form>
-        )}
 
         <p className="text-center text-sm text-surface-400 mt-6">
           Уже есть аккаунт?{' '}

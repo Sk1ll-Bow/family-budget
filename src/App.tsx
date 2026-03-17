@@ -7,6 +7,7 @@ import { initialSync, startSyncListener } from './features/sync/syncEngine';
 import { subscribeToRealtime } from './features/sync/realtimeSubscription';
 import { LoginPage } from './features/auth/LoginPage';
 import { RegisterPage } from './features/auth/RegisterPage';
+import { VerifyOtpPage } from './features/auth/VerifyOtpPage';
 import { FamilySetup } from './features/family/FamilySetup';
 import { ExpenseList } from './features/expenses/ExpenseList';
 import { AddExpenseModal } from './features/expenses/AddExpenseModal';
@@ -81,6 +82,7 @@ function AppShell() {
       {/* Public routes */}
       <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/" replace />} />
       <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/" replace />} />
+      <Route path="/verify-otp" element={!user ? <VerifyOtpPage /> : <Navigate to="/" replace />} />
 
       {/* Auth required routes */}
       <Route path="/setup" element={
