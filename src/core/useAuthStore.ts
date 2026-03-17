@@ -65,10 +65,19 @@ export const useAuthStore = create<IAuthStore>((set, get) => ({
 
   login: async (email: string, password: string) => {
     set({ loading: true });
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    set({ loading: false });
+    console.log('[AuthStore] Attempting login for:', email);
+    console.log('[AuthStore] Project URL:', import.meta.env.VITE_SUPABASE_URL);
+    
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    if (error) {
+      console.error('[AuthStore] Login failed:', error.message, error.status);
+      set({ loading: false });
+      return { error: error.message };
+    }
 
-    if (error) return { error: error.message };
+    console.log('[AuthStore] Login successful for:', data.user?.email);
+    set({ loading: false });
 
     // Fetch family after login
     const { user } = get();
