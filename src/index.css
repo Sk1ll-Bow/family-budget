@@ -1,0 +1,324 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════
+   DESIGN SYSTEM — Family Expense Tracker
+   Style: Glassmorphism + Financial Dashboard
+   Font: Inter (clean, modern, excellent readability)
+   ═══════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@theme {
+  /* ── Primary Palette ────────────────────────────── */
+  --color-brand-primary: #6366f1;
+  --color-brand-primary-light: #818cf8;
+  --color-brand-primary-dark: #4f46e5;
+
+  /* ── Accent / Success / Warning / Danger ────────── */
+  --color-brand-secondary: #10b981;
+  --color-accent: #f59e0b;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+
+  /* ── Neutrals (Dark Mode First) ─────────────────── */
+  --color-surface-900: #0f0f23;
+  --color-surface-800: #1a1a2e;
+  --color-surface-700: #252547;
+  --color-surface-600: #2d2d5e;
+  --color-surface-500: #44446e;
+  --color-surface-400: #6b6b99;
+  --color-surface-300: #9999bb;
+  --color-surface-200: #ccccdd;
+  --color-surface-100: #e8e8f0;
+  --color-surface-50: #f5f5fa;
+
+  /* ── Glass ──────────────────────────────────────── */
+  --color-glass: rgba(255, 255, 255, 0.06);
+  --color-glass-border: rgba(255, 255, 255, 0.1);
+  --color-glass-hover: rgba(255, 255, 255, 0.1);
+
+  /* ── Chart Colors ───────────────────────────────── */
+  --color-chart-1: #6366f1;
+  --color-chart-2: #10b981;
+  --color-chart-3: #f59e0b;
+  --color-chart-4: #ef4444;
+  --color-chart-5: #8b5cf6;
+  --color-chart-6: #ec4899;
+  --color-chart-7: #06b6d4;
+  --color-chart-8: #84cc16;
+
+  /* ── Shadows ────────────────────────────────────── */
+  --shadow-glow: 0 0 24px rgba(99, 102, 241, 0.15);
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.12);
+  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.4);
+
+  /* ── Radius ─────────────────────────────────────── */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+}
+
+/* ═══════ BASE ═══════ */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  @apply bg-surface-900 text-surface-100 antialiased;
+  min-height: 100dvh;
+}
+
+/* ═══════ GLASSMORPHISM UTILITIES ═══════ */
+
+.glass {
+  background: var(--color-glass);
+  border: 1px solid var(--color-glass-border);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--radius-xl);
+  transition: all 0.2s ease;
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: var(--shadow-glow);
+}
+
+.glass-input {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  color: var(--color-surface-100);
+  transition: all 0.2s ease;
+}
+
+.glass-input:focus {
+  outline: none;
+  border-color: var(--color-brand-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.glass-input::placeholder {
+  color: var(--color-surface-400);
+}
+
+/* ═══════ BUTTONS ═══════ */
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 font-semibold transition-all duration-200 cursor-pointer select-none;
+  border-radius: var(--radius-md);
+}
+
+.btn:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+.btn-primary {
+  @apply bg-brand-primary text-white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  @apply bg-brand-primary-dark;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--color-surface-100);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.btn-danger {
+  @apply bg-danger text-white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  @apply bg-danger/80;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-surface-300);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-surface-100);
+}
+
+.btn-sm {
+  @apply px-3 py-1.5 text-sm;
+}
+
+.btn-md {
+  @apply px-4 py-2.5 text-sm;
+}
+
+.btn-lg {
+  @apply px-6 py-3 text-base;
+}
+
+.btn-icon {
+  @apply p-2.5;
+}
+
+/* ═══════ SCROLL ISLANDS ═══════ */
+
+.scroll-island {
+  @apply w-full overflow-x-auto;
+}
+
+/* ═══════ BACKGROUND AMBIENT GLOW ═══════ */
+
+.ambient-glow {
+  position: fixed;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ambient-glow::before {
+  content: '';
+  position: absolute;
+  top: -20%;
+  left: -10%;
+  width: 40%;
+  height: 40%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+}
+
+.ambient-glow::after {
+  content: '';
+  position: absolute;
+  bottom: -10%;
+  right: -10%;
+  width: 35%;
+  height: 35%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.06) 0%, transparent 70%);
+}
+
+/* ═══════ ANIMATIONS ═══════ */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out forwards;
+}
+
+/* ═══════ SKELETON LOADING ═══════ */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.08) 37%,
+    rgba(255, 255, 255, 0.04) 63%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+
+/* ═══════ SCROLLBAR ═══════ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ═══════ FOCUS RING ═══════ */
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-brand-primary);
+  outline-offset: 2px;
+}
+
+/* ═══════ REDUCED MOTION ═══════ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ═══════ MOBILE SAFE AREAS ═══════ */
+
+.safe-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.safe-top {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}

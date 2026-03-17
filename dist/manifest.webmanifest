@@ -1,0 +1,1 @@
+{"name":"Family Expense Tracker","short_name":"Семейный Бюджет","description":"Совместный учёт расходов с синхронизацией","start_url":"/","display":"standalone","background_color":"#0f0f23","theme_color":"#0f0f23","lang":"en","scope":"/","icons":[{"src":"/vite.svg","sizes":"any","type":"image/svg+xml"}]}
