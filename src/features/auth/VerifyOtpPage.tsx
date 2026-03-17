@@ -6,6 +6,7 @@ import { KeyRound, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../../core/useAuthStore';
 import { cn } from '../../core/cn';
 import { toast } from 'sonner';
+import { useEffect } from 'react';
 
 const otpSchema = z.object({
   code: z.string().length(6, 'Код должен состоять из 6 цифр').regex(/^\d+$/, 'Только цифры'),
@@ -19,6 +20,8 @@ export function VerifyOtpPage() {
   const email = searchParams.get('email');
   const { verifyOtp, loading } = useAuthStore();
 
+  console.log('VerifyOtpPage render', { email });
+
   const {
     register: registerOtp,
     handleSubmit: handleOtpSubmit,
@@ -27,9 +30,13 @@ export function VerifyOtpPage() {
     resolver: zodResolver(otpSchema),
   });
 
-  // Если email не передан, отправляем обратно на регистрацию
+  useEffect(() => {
+    if (!email) {
+      navigate('/register', { replace: true });
+    }
+  }, [email, navigate]);
+
   if (!email) {
-    navigate('/register', { replace: true });
     return null;
   }
 

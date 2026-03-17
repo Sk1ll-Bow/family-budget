@@ -36,11 +36,14 @@ export function RegisterPage() {
 
   const onSubmit = async (data: RegisterFormData) => {
     const { error } = await authRegister(data.email, data.password, data.displayName);
+    console.log('Registration attempt finished', { success: !error, error });
     if (error) {
       toast.error(error);
     } else {
       toast.success('Код подтверждения отправлен на ваш email');
-      navigate(`/verify-otp?email=${encodeURIComponent(data.email)}`);
+      const targetUrl = `/verify-otp?email=${encodeURIComponent(data.email)}`;
+      console.log('Navigating to:', targetUrl);
+      navigate(targetUrl);
     }
   };
 
