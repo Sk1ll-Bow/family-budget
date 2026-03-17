@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { useEffect } from 'react';
 
 const otpSchema = z.object({
-  code: z.string().length(6, 'Код должен состоять из 6 цифр').regex(/^\d+$/, 'Только цифры'),
+  code: z.string().min(6, 'Минимум 6 цифр').max(8, 'Максимум 8 цифр').regex(/^\d+$/, 'Только цифры'),
 });
 
 type OtpFormData = z.infer<typeof otpSchema>;
@@ -77,7 +77,7 @@ export function VerifyOtpPage() {
               <input
                 id="opt-code"
                 type="text"
-                maxLength={6}
+                maxLength={8}
                 autoComplete="one-time-code"
                 className={cn(
                   'glass-input w-full pl-10 pr-4 py-3 text-center tracking-widest text-lg focus-ring',

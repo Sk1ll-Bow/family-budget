@@ -82,7 +82,7 @@ function AppShell() {
       {/* Public routes */}
       <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/" replace />} />
       <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/" replace />} />
-      <Route path="/verify-otp" element={!user ? <VerifyOtpPage /> : <Navigate to="/" replace />} />
+      <Route path="/verify-otp" element={<VerifyOtpPage />} />
 
       {/* Auth required routes */}
       <Route path="/setup" element={
