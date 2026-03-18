@@ -23,7 +23,10 @@ export function SettingsPage() {
   const { user, profile, familyId, logout, updateProfile, exitFamily } = useAuthStore();
   const [familyName, setFamilyName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
-  const [categories, setCategories] = useState<ICategory[]>([]);
+  const categories = useLiveQuery(
+    () => familyId ? getCategories(familyId) : [],
+    [familyId]
+  ) || [];
   const accounts = useLiveQuery(
     () => familyId ? getAccounts(familyId) : [],
     [familyId]
@@ -72,8 +75,6 @@ export function SettingsPage() {
         setFamilyName(fam.name as string);
         setInviteCode(fam.invite_code as string);
       }
-
-      setCategories(await getCategories(familyId));
     };
     load();
   }, [familyId]);
@@ -116,7 +117,6 @@ export function SettingsPage() {
     const colors = ['#f59e0b', '#3b82f6', '#8b5cf6', '#ef4444', '#ec4899', '#06b6d4', '#22c55e'];
     const color = colors[categories.length % colors.length];
     await addCategory(familyId, newCatName.trim(), 'tag', color);
-    setCategories(await getCategories(familyId));
     setNewCatName('');
     setAddingCat(false);
     toast.success('Категория добавлена');
@@ -124,7 +124,6 @@ export function SettingsPage() {
 
   const handleDeleteCategory = async (id: string) => {
     await deleteCategory(id);
-    if (familyId) setCategories(await getCategories(familyId));
     toast.success('Категория удалена');
   };
 
@@ -145,7 +144,6 @@ export function SettingsPage() {
 
   const handleDeleteAccount = async (id: string) => {
     await deleteAccount(id);
-    if (familyId) setAccounts(await getAccounts(familyId));
     toast.success('Счёт удалён');
   };
 
