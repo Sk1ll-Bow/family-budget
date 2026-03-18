@@ -40,6 +40,7 @@ export const useAuthStore = create<IAuthStore>()(
       initialized: false,
 
   fetchFamilyId: async (userId: string) => {
+    console.log('[AuthStore] Fetching family for user:', userId);
     try {
       const { data, error } = await supabase
         .from('family_members')
@@ -53,6 +54,7 @@ export const useAuthStore = create<IAuthStore>()(
       }
 
       const id = data?.family_id as string || null;
+      console.log('[AuthStore] Family found:', id);
       set({ familyId: id });
       return id;
     } catch (err) {
@@ -168,13 +170,19 @@ export const useAuthStore = create<IAuthStore>()(
         console.log('[AuthStore] Auth event:', event);
         
         const user = session?.user ?? null;
-        set({ session, user });
-
+        
         if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && user) {
-          await get().fetchProfile(user.id);
-          await get().fetchFamilyId(user.id);
+          // Double ensure state is updated
+          set({ session, user, loading: true });
+          await Promise.all([
+            get().fetchProfile(user.id),
+            get().fetchFamilyId(user.id)
+          ]);
+          set({ loading: false });
         } else if (event === 'SIGNED_OUT') {
-          set({ familyId: null, profile: null });
+          set({ session: null, user: null, familyId: null, profile: null, loading: false });
+        } else {
+          set({ session, user });
         }
       });
     } catch (err) {

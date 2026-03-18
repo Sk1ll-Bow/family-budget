@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Plus, ArrowRight, Copy, Loader2, Sparkles } from 'lucide-react';
 import { supabase } from '../../core/supabase';
@@ -36,12 +36,44 @@ export function FamilySetup() {
   const [familyName, setFamilyName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  const fetchFamilyId = useAuthStore((s) => s.fetchFamilyId);
+
+  // Auto-detect existing family on mount
+  useEffect(() => {
+    async function checkExisting() {
+      if (!user) {
+        setChecking(false);
+        return;
+      }
+
+      console.log('[FamilySetup] Checking for existing family...');
+      const existingId = await fetchFamilyId(user.id);
+      
+      if (existingId) {
+        toast.info('Ваша семья найдена. Перенаправляем...');
+        navigate('/', { replace: true });
+      } else {
+        setChecking(false);
+      }
+    }
+    checkExisting();
+  }, [user, fetchFamilyId, navigate]);
 
   const handleCreate = async () => {
     if (!familyName.trim() || !user) return;
     setLoading(true);
 
     try {
+      // Safety check: is user already in a family?
+      const existing = await fetchFamilyId(user.id);
+      if (existing) {
+        toast.error('Вы уже состоите в семье. Перенаправляем...');
+        navigate('/', { replace: true });
+        return;
+      }
+
       const familyId = uuidv4();
 
       // Create family
@@ -111,8 +143,10 @@ export function FamilySetup() {
         .insert({ family_id: family.id, user_id: user.id });
 
       if (joinError) {
-        if (joinError.code === '23505') {
-          toast.error('Вы уже состоите в этой семье');
+        if (joinError.code === '23505' || joinError.message.includes('unique')) {
+          toast.error('Вы уже состоите в этой или другой семье');
+          await fetchFamilyId(user.id);
+          navigate('/', { replace: true });
         } else {
           throw joinError;
         }
@@ -130,6 +164,14 @@ export function FamilySetup() {
       setLoading(false);
     }
   };
+
+  if (checking) {
+    return (
+      <div className="min-h-dvh flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-brand-primary animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-dvh flex items-center justify-center p-4 relative">
