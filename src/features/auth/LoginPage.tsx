@@ -32,7 +32,11 @@ export function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     const { error } = await login(data.email, data.password);
     if (error) {
-      toast.error(error);
+      if (error.includes('credentials')) {
+        toast.error('Неверный email или пароль. Если аккаунт создан вручную, проверьте пароль в Supabase.');
+      } else {
+        toast.error(error);
+      }
     } else {
       toast.success('Добро пожаловать!');
       navigate('/');

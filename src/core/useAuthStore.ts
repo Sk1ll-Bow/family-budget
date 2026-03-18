@@ -11,6 +11,7 @@ interface IAuthStore {
 
   initialize: () => Promise<void>;
   setFamilyId: (id: string) => void;
+  fetchFamilyId: (userId: string) => Promise<string | null>;
   login: (email: string, password: string) => Promise<{ error: string | null }>;
   register: (email: string, password: string, displayName: string) => Promise<{ error: string | null }>;
   verifyOtp: (email: string, token: string) => Promise<{ error: string | null }>;
@@ -24,6 +25,31 @@ export const useAuthStore = create<IAuthStore>((set, get) => ({
   loading: true,
   initialized: false,
 
+  fetchFamilyId: async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('family_members')
+        .select('family_id')
+        .eq('user_id', userId)
+        .limit(1)
+        .single();
+
+      if (error) {
+        if (error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+          console.error('[AuthStore] Error fetching family:', error.message);
+        }
+        return null;
+      }
+
+      const id = data?.family_id as string;
+      set({ familyId: id });
+      return id;
+    } catch (err) {
+      console.error('[AuthStore] Unexpected error fetching family:', err);
+      return null;
+    }
+  },
+
   initialize: async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -31,32 +57,30 @@ export const useAuthStore = create<IAuthStore>((set, get) => ({
       set({
         session,
         user: session?.user ?? null,
-        loading: false,
-        initialized: true,
-      });
-
-      // Listen for auth changes
-      supabase.auth.onAuthStateChange((_event, session) => {
-        set({
-          session,
-          user: session?.user ?? null,
-        });
       });
 
       // If user exists, try to get their family
       if (session?.user) {
-        const { data } = await supabase
-          .from('family_members')
-          .select('family_id')
-          .eq('user_id', session.user.id)
-          .limit(1)
-          .single();
-
-        if (data) {
-          set({ familyId: data.family_id as string });
-        }
+        await get().fetchFamilyId(session.user.id);
       }
-    } catch {
+
+      set({ loading: false, initialized: true });
+
+      // Listen for auth changes
+      supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('[AuthStore] Auth event:', event);
+        
+        const user = session?.user ?? null;
+        set({ session, user });
+
+        if (event === 'SIGNED_IN' && user) {
+          await get().fetchFamilyId(user.id);
+        } else if (event === 'SIGNED_OUT') {
+          set({ familyId: null });
+        }
+      });
+    } catch (err) {
+      console.error('[AuthStore] Initialization failed:', err);
       set({ loading: false, initialized: true });
     }
   },
@@ -65,33 +89,19 @@ export const useAuthStore = create<IAuthStore>((set, get) => ({
 
   login: async (email: string, password: string) => {
     set({ loading: true });
-    console.log('[AuthStore] Attempting login for:', email);
-    console.log('[AuthStore] Project URL:', import.meta.env.VITE_SUPABASE_URL);
     
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     
     if (error) {
-      console.error('[AuthStore] Login failed:', error.message, error.status);
       set({ loading: false });
       return { error: error.message };
     }
 
-    console.log('[AuthStore] Login successful for:', data.user?.email);
-    set({ loading: false });
-
-    // Fetch family after login
-    const { user } = get();
-    if (user) {
-      const { data } = await supabase
-        .from('family_members')
-        .select('family_id')
-        .eq('user_id', user.id)
-        .limit(1)
-        .single();
-
-      if (data) set({ familyId: data.family_id as string });
+    if (data.user) {
+      await get().fetchFamilyId(data.user.id);
     }
 
+    set({ loading: false });
     return { error: null };
   },
 
@@ -113,15 +123,22 @@ export const useAuthStore = create<IAuthStore>((set, get) => ({
       token,
       type: 'signup',
     });
-    set({ loading: false });
     
-    if (error) return { error: error.message };
+    if (error) {
+      set({ loading: false });
+      return { error: error.message };
+    }
 
     set({
       session,
       user: session?.user ?? null,
     });
 
+    if (session?.user) {
+      await get().fetchFamilyId(session.user.id);
+    }
+
+    set({ loading: false });
     return { error: null };
   },
 
@@ -130,3 +147,4 @@ export const useAuthStore = create<IAuthStore>((set, get) => ({
     set({ user: null, session: null, familyId: null });
   },
 }));
+
