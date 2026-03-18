@@ -31,11 +31,15 @@ export interface ICategory {
 }
 
 // ─── Account (spending source) ──────────────────────────
+export type AccountType = 'card' | 'cash' | 'bank' | 'savings' | 'credit';
+
 export interface IAccount {
   id: string;
   familyId: string;
   name: string;
   icon: string;
+  color: string;
+  type: AccountType;
 }
 
 // ─── Expense ────────────────────────────────────────────
@@ -59,11 +63,27 @@ export interface IUserProfile {
   id: string;
   email: string;
   displayName: string;
+  avatarIcon: string;
+  avatarBg: string;
+  currency: string;
+  language: 'ru' | 'en' | 'sk';
 }
 
 // ─── Supabase ↔ App mappers ─────────────────────────────
 
+/** Raw Supabase row for profiles table */
+export interface IProfileRow {
+  id: string;
+  email: string;
+  display_name: string;
+  avatar_icon: string;
+  avatar_bg: string;
+  currency: string;
+  language: 'ru' | 'en' | 'sk';
+}
+
 /** Raw Supabase row for expenses table */
+// ... existing code ...
 export interface IExpenseRow {
   id: string;
   family_id: string;
@@ -101,6 +121,8 @@ export interface IAccountRow {
   family_id: string;
   name: string;
   icon: string;
+  color: string;
+  type: AccountType;
 }
 
 // ─── Mapper utilities ───────────────────────────────────
@@ -160,5 +182,31 @@ export function mapAccountFromRow(row: IAccountRow): IAccount {
     familyId: row.family_id,
     name: row.name,
     icon: row.icon,
+    color: row.color ?? 'blue',
+    type: row.type ?? 'card',
+  };
+}
+
+export function mapProfileFromRow(row: IProfileRow): IUserProfile {
+  return {
+    id: row.id,
+    email: row.email,
+    displayName: row.display_name,
+    avatarIcon: row.avatar_icon,
+    avatarBg: row.avatar_bg,
+    currency: row.currency,
+    language: row.language,
+  };
+}
+
+export function mapProfileToRow(profile: IUserProfile): IProfileRow {
+  return {
+    id: profile.id,
+    email: profile.email,
+    display_name: profile.displayName,
+    avatar_icon: profile.avatarIcon,
+    avatar_bg: profile.avatarBg,
+    currency: profile.currency,
+    language: profile.language,
   };
 }

@@ -78,7 +78,7 @@ export function FamilySetup() {
 
       setFamilyId(familyId);
       toast.success('Семья создана!');
-      navigate('/');
+      navigate('/', { replace: true });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Ошибка создания семьи';
       toast.error(message);
@@ -122,7 +122,7 @@ export function FamilySetup() {
 
       setFamilyId(family.id as string);
       toast.success(`Вы присоединились к "${family.name}"!`);
-      navigate('/');
+      navigate('/', { replace: true });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Ошибка присоединения';
       toast.error(message);

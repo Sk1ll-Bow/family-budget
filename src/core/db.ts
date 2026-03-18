@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { IFamily, ICategory, IAccount, IExpense } from './types';
+import type { IFamily, ICategory, IAccount, IExpense, IUserProfile } from './types';
 
 /**
  * Local-first IndexedDB database using Dexie.js.
@@ -11,15 +11,17 @@ export class FamilyBudgetDB extends Dexie {
   categories!: Table<ICategory>;
   accounts!: Table<IAccount>;
   expenses!: Table<IExpense>;
+  profiles!: Table<IUserProfile>;
 
   constructor() {
     super('familyBudgetDB');
 
-    this.version(1).stores({
+    this.version(2).stores({
       families: 'id, name',
       categories: 'id, familyId, sortOrder',
-      accounts: 'id, familyId',
+      accounts: 'id, familyId, type',
       expenses: 'id, familyId, userId, categoryId, accountId, spentAt, syncStatus',
+      profiles: 'id, email',
     });
   }
 }

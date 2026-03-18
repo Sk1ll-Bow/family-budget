@@ -15,8 +15,11 @@ import type { ICategory, IAccount } from '../../core/types';
 import { cn } from '../../core/cn';
 import { toast } from 'sonner';
 import { useModalStore } from '../../core/useModalStore';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../../core/db';
 import { ReceiptScanner, MODAL_RECEIPT_SCANNER } from '../ocr/ReceiptScanner';
 import { QrScanner, MODAL_QR_SCANNER } from '../ocr/QrScanner';
+import { AccountSelector } from '../accounts/AccountSelector';
 
 export const MODAL_ADD_EXPENSE = 'add-expense';
 
@@ -44,8 +47,8 @@ export function AddExpenseModal({ onAdded }: IAddExpenseModalProps) {
   const { closeModal, stack, openModal } = useModalStore();
   const isOpen = stack.some((m) => m.id === MODAL_ADD_EXPENSE);
 
-  const [categories, setCategories] = useState<ICategory[]>([]);
-  const [accounts, setAccounts] = useState<IAccount[]>([]);
+  const categories = useLiveQuery(() => familyId ? getCategories(familyId) : [], [familyId]) || [];
+  const accounts = useLiveQuery(() => familyId ? getAccounts(familyId) : [], [familyId]) || [];
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -63,21 +66,12 @@ export function AddExpenseModal({ onAdded }: IAddExpenseModalProps) {
     },
   });
 
-  // Load categories and accounts
+  // Set default account when accounts load
   useEffect(() => {
-    if (!isOpen || !familyId) return;
-
-    const load = async () => {
-      const [cats, accs] = await Promise.all([
-        getCategories(familyId),
-        getAccounts(familyId),
-      ]);
-      setCategories(cats);
-      setAccounts(accs);
-      if (accs.length > 0 && !selectedAccount) setSelectedAccount(accs[0].id);
-    };
-    load();
-  }, [isOpen, familyId]);
+    if (accounts.length > 0 && !selectedAccount) {
+      setSelectedAccount(accounts[0].id);
+    }
+  }, [accounts, selectedAccount]);
 
   // Reset form on open
   useEffect(() => {
@@ -201,30 +195,19 @@ export function AddExpenseModal({ onAdded }: IAddExpenseModalProps) {
           </div>
         </div>
 
+        {/* Account Selection */}
+
         {/* Account Selector */}
         <div>
           <label className="block text-sm font-medium text-surface-300 mb-2">
             <CreditCard className="inline w-4 h-4 mr-1 -mt-0.5" />
             Счёт
           </label>
-          <div className="flex gap-2">
-            {accounts.map((acc) => (
-              <button
-                key={acc.id}
-                type="button"
-                onClick={() => setSelectedAccount(acc.id)}
-                className={cn(
-                  'flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl transition-all duration-150 cursor-pointer text-sm',
-                  selectedAccount === acc.id
-                    ? 'bg-brand-primary/20 border border-brand-primary/40 text-surface-100'
-                    : 'glass-card text-surface-300 hover:text-surface-100'
-                )}
-              >
-                {selectedAccount === acc.id && <Check className="w-3.5 h-3.5" />}
-                {acc.name}
-              </button>
-            ))}
-          </div>
+          <AccountSelector
+            accounts={accounts}
+            selectedId={selectedAccount}
+            onSelect={setSelectedAccount}
+          />
         </div>
 
         {/* Description */}

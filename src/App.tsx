@@ -66,7 +66,7 @@ function AppShell() {
   }, [familyId]);
 
   // Loading state
-  if (!initialized || loading) {
+  if (!initialized) {
     return (
       <div className="min-h-dvh flex items-center justify-center">
         <div className="text-center animate-fade-in">

@@ -1,6 +1,6 @@
 import { db } from '../../core/db';
 import { supabase } from '../../core/supabase';
-import type { IAccount } from '../../core/types';
+import type { IAccount, AccountType } from '../../core/types';
 import { mapAccountFromRow } from '../../core/types';
 
 /**
@@ -29,17 +29,30 @@ export async function pullAccountsFromCloud(familyId: string): Promise<void> {
 export async function addAccount(
   familyId: string,
   name: string,
-  icon: string
+  icon: string,
+  color: string,
+  type: AccountType
 ): Promise<void> {
   const { data, error } = await supabase
     .from('accounts')
-    .insert({ family_id: familyId, name, icon })
+    .insert({ family_id: familyId, name, icon, color, type })
     .select()
     .single();
 
-  if (!error && data) {
+  if (error) throw error;
+  if (data) {
     await db.accounts.put(mapAccountFromRow(data));
   }
+}
+
+/** Get total spent from an account in EUR. */
+export async function getAccountSpentAmount(accountId: string): Promise<number> {
+  const accountExpenses = await db.expenses
+    .where('accountId')
+    .equals(accountId)
+    .toArray();
+  
+  return accountExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 }
 
 /** Delete an account. */
