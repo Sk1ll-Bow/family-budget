@@ -113,7 +113,7 @@ export function FamilySetup() {
       const { data: family, error: findError } = await supabase
         .from('families')
         .select('id, name')
-        .eq('invite_code', inviteCode.trim().toLowerCase())
+        .eq('invite_code', inviteCode.trim().toUpperCase())
         .single();
 
       if (findError || !family) {
@@ -257,10 +257,10 @@ export function FamilySetup() {
               <input
                 type="text"
                 value={inviteCode}
-                onChange={(e) => setInviteCode(e.target.value)}
+                onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                 className="glass-input w-full px-4 py-3 text-sm focus-ring font-mono tracking-widest text-center uppercase"
-                placeholder="ABCD1234"
-                maxLength={8}
+                placeholder="ABC123"
+                maxLength={6}
                 autoFocus
               />
 
