@@ -109,38 +109,22 @@ export function FamilySetup() {
     setLoading(true);
 
     try {
-      // Find family by invite code
-      const { data: family, error: findError } = await supabase
-        .from('families')
-        .select('id, name')
-        .eq('invite_code', inviteCode.trim().toUpperCase())
-        .single();
+      const { data, error: rpcError } = await supabase.rpc('join_family_by_code', {
+        invite_code_param: inviteCode.trim().toUpperCase(),
+      });
 
-      if (findError || !family) {
-        toast.error('Семья с таким кодом не найдена');
+      if (rpcError) throw rpcError;
+
+      const result = data as { success: boolean; error?: string; family_id?: string; family_name?: string };
+
+      if (!result.success) {
+        toast.error(result.error || 'Ошибка присоединения');
         setLoading(false);
         return;
       }
 
-      // Join family
-      const { error: joinError } = await supabase
-        .from('family_members')
-        .insert({ family_id: family.id, user_id: user.id });
-
-      if (joinError) {
-        if (joinError.code === '23505' || joinError.message.includes('unique')) {
-          toast.error('Вы уже состоите в этой или другой семье');
-          await fetchFamilyId(user.id);
-          navigate('/', { replace: true });
-        } else {
-          throw joinError;
-        }
-        setLoading(false);
-        return;
-      }
-
-      setFamilyId(family.id as string);
-      toast.success(`Вы присоединились к "${family.name}"!`);
+      setFamilyId(result.family_id as string);
+      toast.success(`Вы присоединились к "${result.family_name}"!`);
       navigate('/', { replace: true });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Ошибка присоединения';
