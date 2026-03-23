@@ -40,26 +40,11 @@ export function FamilySetup() {
 
   const fetchFamilyId = useAuthStore((s) => s.fetchFamilyId);
 
-  // Auto-detect existing family on mount
+  // Auto-detect existing family on mount is now handled by RequireFamily in App.tsx
+  // But we still want to ensure checking is false if we are actually here.
   useEffect(() => {
-    async function checkExisting() {
-      if (!user) {
-        setChecking(false);
-        return;
-      }
-
-      console.log('[FamilySetup] Checking for existing family...');
-      const existingId = await fetchFamilyId(user.id);
-      
-      if (existingId) {
-        toast.info('Ваша семья найдена. Перенаправляем...');
-        navigate('/', { replace: true });
-      } else {
-        setChecking(false);
-      }
-    }
-    checkExisting();
-  }, [user, fetchFamilyId, navigate]);
+    setChecking(false);
+  }, []);
 
   const handleCreate = async () => {
     if (!familyName.trim() || !user) return;
@@ -184,9 +169,9 @@ export function FamilySetup() {
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-primary/15 mb-4">
                 <Sparkles className="w-8 h-8 text-brand-primary" />
               </div>
-              <h1 className="text-2xl font-bold text-surface-100">Добро пожаловать!</h1>
+              <h1 className="text-2xl font-bold text-surface-100">Почти готово!</h1>
               <p className="text-surface-400 text-sm mt-1">
-                Создайте семью или присоединитесь к существующей
+                Мы не нашли вашу семью. Давайте создадим новую или присоединимся к существующей.
               </p>
             </div>
 

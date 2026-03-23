@@ -68,10 +68,25 @@ function AppShell() {
   // Loading state
   if (!initialized) {
     return (
-      <div className="min-h-dvh flex items-center justify-center">
-        <div className="text-center animate-fade-in">
-          <Loader2 className="w-8 h-8 text-brand-primary animate-spin mx-auto mb-3" />
-          <p className="text-surface-400 text-sm">Загрузка...</p>
+      <div className="min-h-dvh flex items-center justify-center p-6 relative overflow-hidden">
+        {/* Decorative background elements */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-brand-primary/10 blur-[100px] rounded-full" />
+        <div className="absolute top-1/4 left-1/3 w-40 h-40 bg-brand-secondary/5 blur-[80px] rounded-full" />
+        
+        <div className="text-center relative z-10 animate-fade-in">
+          <div className="relative mb-6">
+            <div className="absolute inset-0 bg-brand-primary/20 blur-xl rounded-full scale-150 animate-pulse" />
+            <Loader2 className="w-10 h-10 text-brand-primary animate-spin mx-auto relative z-10" />
+          </div>
+          
+          <h2 className="text-xl font-semibold text-surface-100 mb-2">
+            {user ? 'Входим в систему...' : 'Загрузка...'}
+          </h2>
+          <p className="text-surface-400 text-sm max-w-[200px] mx-auto">
+            {user 
+              ? 'Проверяем доступ к вашему семейному бюджету...' 
+              : 'Подключаемся к серверу...'}
+          </p>
         </div>
       </div>
     );
@@ -131,9 +146,18 @@ function RequireAuth({ children }: { children: ReactNode }) {
 
 /** Require authenticated user WITH a family */
 function RequireFamily({ children }: { children: ReactNode }) {
-  const { user, familyId } = useAuthStore();
+  const { user, familyId, loading } = useAuthStore();
+  
   if (!user) return <Navigate to="/login" replace />;
-  if (!familyId) return <Navigate to="/setup" replace />;
+  
+  // If we are still refetching something in the store but it's initialized,
+  // we might want to wait if it's explicitly a "checking" state.
+  // But usually initialized=true means initial fetch (profile+family) is done.
+  if (!familyId) {
+    console.log('[RequireFamily] No familyId found, redirecting to setup...');
+    return <Navigate to="/setup" replace />;
+  }
+  
   return <>{children}</>;
 }
 

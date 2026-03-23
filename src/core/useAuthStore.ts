@@ -50,6 +50,9 @@ export const useAuthStore = create<IAuthStore>()(
 
       if (error) {
         console.error('[AuthStore] Error fetching family:', error.message);
+        // Important: if we get an error (like RLS recursion), we don't want to 
+        // immediately assume "no family" if it was just a transient error.
+        // But for now, returning null is the safe fallback for the UI.
         return null;
       }
 
@@ -159,8 +162,11 @@ export const useAuthStore = create<IAuthStore>()(
 
       // If user exists, restore profile and family
       if (session?.user) {
-        await get().fetchProfile(session.user.id);
-        await get().fetchFamilyId(session.user.id);
+        console.log('[AuthStore] User authenticated, checking profile & family...');
+        await Promise.all([
+          get().fetchProfile(session.user.id),
+          get().fetchFamilyId(session.user.id)
+        ]);
       }
 
       set({ loading: false, initialized: true });
