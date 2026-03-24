@@ -16,7 +16,7 @@ export interface ICategoryBreakdown {
 
 export interface IMonthlyTotal {
   month: string;       // "2026-01" format
-  monthLabel: string;  // "янв 2026"
+  monthLabel: string;  // "Jan 2026"
   total: number;
 }
 
@@ -29,8 +29,8 @@ export interface IAccountBreakdown {
 }
 
 const MONTH_SHORT: Record<number, string> = {
-  0: 'янв', 1: 'фев', 2: 'мар', 3: 'апр', 4: 'май', 5: 'июн',
-  6: 'июл', 7: 'авг', 8: 'сен', 9: 'окт', 10: 'ноя', 11: 'дек',
+  0: 'Jan', 1: 'Feb', 2: 'Mar', 3: 'Apr', 4: 'May', 5: 'Jun',
+  6: 'Jul', 7: 'Aug', 8: 'Sep', 9: 'Oct', 10: 'Nov', 11: 'Dec',
 };
 
 /** Get expense breakdown by category for a given month. */
@@ -67,7 +67,7 @@ export async function getCategoryBreakdown(
       const cat = catMap.get(catId);
       return {
         categoryId: catId,
-        categoryName: cat?.name ?? 'Без категории',
+        categoryName: cat?.name ?? 'No Category',
         color: cat?.color ?? '#6b7280',
         amount,
         percentage: total > 0 ? Math.round((amount / total) * 100) : 0,
@@ -142,7 +142,7 @@ export async function getAccountBreakdown(
       const acc = accMap.get(accId);
       return {
         accountId: accId,
-        accountName: acc?.name ?? 'Неизвестный',
+        accountName: acc?.name ?? 'Unknown',
         icon: acc?.icon ?? 'credit-card',
         amount,
         percentage: total > 0 ? Math.round((amount / total) * 100) : 0,

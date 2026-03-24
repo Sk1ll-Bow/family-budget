@@ -20,13 +20,15 @@ import { db } from '../../core/db';
 import { ReceiptScanner, MODAL_RECEIPT_SCANNER } from '../ocr/ReceiptScanner';
 import { QrScanner, MODAL_QR_SCANNER } from '../ocr/QrScanner';
 import { AccountSelector } from '../accounts/AccountSelector';
+import { LucideIcon } from '../../components/LucideIcon';
+
 
 export const MODAL_ADD_EXPENSE = 'add-expense';
 
 const expenseSchema = z.object({
-  amount: z.string().min(1, 'Введите сумму').refine(
-    (v) => !isNaN(Number(v.replace(',', '.'))) && Number(v.replace(',', '.')) > 0,
-    'Сумма должна быть больше 0'
+  amount: z.string().min(1, 'Enter amount').refine(
+    (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0,
+    'Amount must be greater than 0'
   ),
   description: z.string().optional(),
   spentAt: z.string().min(1),
@@ -96,11 +98,11 @@ export function AddExpenseModal({ onAdded }: IAddExpenseModalProps) {
         spentAt: new Date(data.spentAt).toISOString(),
       });
 
-      toast.success('Расход добавлен');
+      toast.success('Expense added');
       closeModal();
       onAdded?.();
     } catch {
-      toast.error('Ошибка при добавлении');
+      toast.error('Error adding expense');
     } finally {
       setSubmitting(false);
     }
@@ -109,149 +111,165 @@ export function AddExpenseModal({ onAdded }: IAddExpenseModalProps) {
   /** Called from OCR/QR scanner to auto-fill amount */
   const handleAmountDetected = useCallback((amount: number) => {
     setValue('amount', amount.toString());
-    toast.success(`Сумма распознана: ${amount}`);
+    toast.success(`Amount recognized: ${amount}`);
   }, [setValue]);
 
   return (
-    <PortalModal modalId={MODAL_ADD_EXPENSE} title="Новый расход" size="md">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+    <PortalModal modalId={MODAL_ADD_EXPENSE} title="Add Expense" size="md">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Amount Input — Big & Prominent */}
-        <div>
-          <label htmlFor="expense-amount" className="block text-sm font-medium text-surface-300 mb-1.5">
-            Сумма
+        <div className="bg-brand-primary/10 rounded-[32px] p-8 border border-white/5 shadow-inner-lg">
+          <label htmlFor="expense-amount" className="block text-[10px] font-black text-brand-primary uppercase tracking-[0.2em] mb-4 text-center">
+            Enter Amount
           </label>
-          <div className="relative">
-            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
+          <div className="relative flex justify-center">
+            <span className="text-4xl font-black text-brand-primary/40 mr-2 mt-1">€</span>
             <input
               id="expense-amount"
               type="text"
               inputMode="decimal"
               className={cn(
-                'glass-input w-full pl-11 pr-4 py-4 text-2xl font-bold focus-ring',
-                errors.amount && 'border-danger'
+                'w-full max-w-[200px] bg-transparent border-none text-6xl font-black focus:outline-none focus:ring-0 placeholder:text-surface-800 p-0 transition-all text-center tracking-tighter',
+                errors.amount ? 'text-danger' : 'text-surface-50'
               )}
-              placeholder="0.00"
+              placeholder="0"
               autoFocus
               {...register('amount')}
             />
           </div>
           {errors.amount && (
-            <p className="text-danger text-xs mt-1">{errors.amount.message}</p>
+            <p className="text-danger text-[10px] mt-3 font-black uppercase tracking-widest text-center">{errors.amount.message}</p>
           )}
+        </div>
 
-          {/* Quick OCR/QR buttons */}
-          <div className="flex gap-2 mt-2">
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm flex-1"
-              onClick={() => {
-                openModal(MODAL_RECEIPT_SCANNER, { onAmountDetected: handleAmountDetected });
-              }}
-            >
-              <Camera className="w-4 h-4" />
-              Фото чека
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm flex-1"
-              onClick={() => {
-                openModal(MODAL_QR_SCANNER, { onAmountDetected: handleAmountDetected });
-              }}
-            >
-              <QrCode className="w-4 h-4" />
-              QR-код
-            </button>
-          </div>
+        {/* Quick OCR/QR buttons */}
+        <div className="flex gap-4">
+          <button
+            type="button"
+            className="flex-1 glass py-4 rounded-2xl flex items-center justify-center gap-2 group active:scale-95 transition-all"
+            onClick={() => {
+              openModal(MODAL_RECEIPT_SCANNER, { onAmountDetected: handleAmountDetected });
+            }}
+          >
+            <Camera className="w-5 h-5 text-surface-400 group-hover:text-brand-primary transition-colors" />
+            <span className="text-[10px] font-black text-surface-400 uppercase tracking-widest">Receipt</span>
+          </button>
+          <button
+            type="button"
+            className="flex-1 glass py-4 rounded-2xl flex items-center justify-center gap-2 group active:scale-95 transition-all"
+            onClick={() => {
+              openModal(MODAL_QR_SCANNER, { onAmountDetected: handleAmountDetected });
+            }}
+          >
+            <QrCode className="w-5 h-5 text-surface-400 group-hover:text-brand-secondary transition-colors" />
+            <span className="text-[10px] font-black text-surface-400 uppercase tracking-widest">QR Order</span>
+          </button>
         </div>
 
         {/* Category Grid */}
-        <div>
-          <label className="block text-sm font-medium text-surface-300 mb-2">
-            <Tag className="inline w-4 h-4 mr-1 -mt-0.5" />
-            Категория
-          </label>
-          <div className="grid grid-cols-4 gap-2">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <label className="text-[10px] font-black text-surface-500 uppercase tracking-widest">
+              Category
+            </label>
+            <button type="button" className="text-[10px] font-black text-brand-primary uppercase tracking-widest">Manage</button>
+          </div>
+          <div className="grid grid-cols-4 gap-4">
             {categories.map((cat) => (
               <button
                 key={cat.id}
                 type="button"
                 onClick={() => setSelectedCategory(cat.id)}
-                className={cn(
-                  'flex flex-col items-center gap-1 p-3 rounded-xl transition-all duration-150 cursor-pointer',
-                  selectedCategory === cat.id
-                    ? 'bg-brand-primary/20 border border-brand-primary/40 shadow-[0_0_12px_rgba(99,102,241,0.15)]'
-                    : 'glass-card border-transparent hover:bg-glass-hover'
-                )}
+                className="flex flex-col items-center gap-2 group outline-none"
               >
                 <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold"
-                  style={{ backgroundColor: `${cat.color}20`, color: cat.color }}
+                  className={cn(
+                    "w-full aspect-square rounded-3xl flex items-center justify-center transition-all duration-300",
+                    selectedCategory === cat.id 
+                      ? "bg-brand-primary shadow-[0_8px_20px_rgba(59,130,246,0.4)] scale-105" 
+                      : "glass group-hover:bg-white/5"
+                  )}
                 >
-                  {cat.name.charAt(0)}
+                  <LucideIcon 
+                    name={cat.icon || 'Circle'} 
+                    className={cn(
+                      "w-6 h-6 transition-colors",
+                      selectedCategory === cat.id ? "text-white" : "text-surface-400"
+                    )}
+                    style={{ color: selectedCategory === cat.id ? undefined : cat.color }}
+                  />
                 </div>
-                <span className="text-[10px] text-surface-300 truncate max-w-full">{cat.name}</span>
+                <span className={cn(
+                  "text-[9px] font-black uppercase tracking-widest truncate max-w-full",
+                  selectedCategory === cat.id ? "text-surface-50" : "text-surface-500"
+                )}>
+                  {cat.name}
+                </span>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Account Selection */}
+        {/* Details Section */}
+        <div className="space-y-5">
+          <div>
+            <label className="block text-[10px] font-black text-surface-500 uppercase tracking-widest mb-3 pl-1">
+              Select Account
+            </label>
+            <AccountSelector
+              accounts={accounts}
+              selectedId={selectedAccount}
+              onSelect={setSelectedAccount}
+            />
+          </div>
 
-        {/* Account Selector */}
-        <div>
-          <label className="block text-sm font-medium text-surface-300 mb-2">
-            <CreditCard className="inline w-4 h-4 mr-1 -mt-0.5" />
-            Счёт
-          </label>
-          <AccountSelector
-            accounts={accounts}
-            selectedId={selectedAccount}
-            onSelect={setSelectedAccount}
-          />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label htmlFor="expense-desc" className="block text-[10px] font-black text-surface-500 uppercase tracking-widest pl-1">
+                Note
+              </label>
+              <input
+                id="expense-desc"
+                type="text"
+                className="glass w-full px-4 py-4 text-xs focus:ring-1 focus:ring-brand-primary/50 outline-none rounded-2xl font-black text-surface-50 placeholder:text-surface-700 placeholder:font-bold"
+                placeholder="What for?"
+                {...register('description')}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="expense-date" className="block text-[10px] font-black text-surface-500 uppercase tracking-widest pl-1">
+                Date
+              </label>
+              <input
+                id="expense-date"
+                type="datetime-local"
+                className="glass w-full px-4 py-4 text-xs focus:ring-1 focus:ring-brand-primary/50 outline-none rounded-2xl font-black text-surface-50"
+                {...register('spentAt')}
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Description */}
-        <div>
-          <label htmlFor="expense-desc" className="block text-sm font-medium text-surface-300 mb-1.5">
-            <FileText className="inline w-4 h-4 mr-1 -mt-0.5" />
-            Комментарий
-          </label>
-          <input
-            id="expense-desc"
-            type="text"
-            className="glass-input w-full px-4 py-2.5 text-sm focus-ring"
-            placeholder="Необязательно"
-            {...register('description')}
-          />
-        </div>
-
-        {/* Date */}
-        <div>
-          <label htmlFor="expense-date" className="block text-sm font-medium text-surface-300 mb-1.5">
-            <Calendar className="inline w-4 h-4 mr-1 -mt-0.5" />
-            Дата и время
-          </label>
-          <input
-            id="expense-date"
-            type="datetime-local"
-            className="glass-input w-full px-4 py-2.5 text-sm focus-ring"
-            {...register('spentAt')}
-          />
-        </div>
-
-          {/* Submit */}
+        {/* Submit */}
         <button
           type="submit"
           disabled={submitting}
-          className="btn btn-primary btn-lg w-full"
+          className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-black text-base py-5 rounded-[24px] shadow-2xl shadow-brand-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4 group"
         >
           {submitting ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <Loader2 className="w-6 h-6 animate-spin" />
           ) : (
-            'Добавить расход'
+            <>
+              <span className="uppercase tracking-[0.2em] ml-6">Save Transaction</span>
+              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Check className="w-5 h-5" />
+              </div>
+            </>
           )}
         </button>
       </form>
+
 
       {/* Nested Scanner Modals */}
       <ReceiptScanner onAmountDetected={handleAmountDetected} />

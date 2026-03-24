@@ -47,7 +47,7 @@ export function ReceiptScanner({ onAmountDetected }: IReceiptScannerProps) {
   if (!isOpen) return null;
 
   return (
-    <PortalModal modalId={MODAL_RECEIPT_SCANNER} title="Сканирование чека">
+    <PortalModal modalId={MODAL_RECEIPT_SCANNER} title="Scan Receipt">
       <div className="space-y-6">
         
         {/* Hidden File Input */}
@@ -67,14 +67,14 @@ export function ReceiptScanner({ onAmountDetected }: IReceiptScannerProps) {
               <Camera className="w-8 h-8 text-surface-300" />
             </div>
             <p className="text-surface-300 mb-6 max-w-xs mx-auto text-sm">
-              Сфотографируйте чек так, чтобы было чётко видно итоговую сумму.
+              Take a photo of the receipt so the total amount is clearly visible.
             </p>
             <button 
               type="button" 
               className="btn btn-primary btn-lg w-full"
               onClick={() => fileInputRef.current?.click()}
             >
-              Сделать фото
+              Take Photo
             </button>
           </div>
         )}
@@ -83,8 +83,8 @@ export function ReceiptScanner({ onAmountDetected }: IReceiptScannerProps) {
         {isProcessing && (
           <div className="text-center py-12 animate-fade-in">
             <Loader2 className="w-12 h-12 text-brand-primary animate-spin mx-auto mb-4" />
-            <p className="text-surface-100 font-medium text-lg">Распознавание...</p>
-            <p className="text-surface-400 text-sm mt-2">Анализируем текст чека</p>
+            <p className="text-surface-100 font-medium text-lg">Recognizing...</p>
+            <p className="text-surface-400 text-sm mt-2">Analyzing receipt text</p>
           </div>
         )}
 
@@ -97,7 +97,7 @@ export function ReceiptScanner({ onAmountDetected }: IReceiptScannerProps) {
               <div className="glass-card p-6 bg-success/10 border-success/20 text-center">
                 <CheckCircle2 className="w-12 h-12 text-success mx-auto mb-3" />
                 <p className="text-success font-bold text-xl mb-1">{result.detectedAmount} ₽</p>
-                <p className="text-success/80 text-sm">Сумма распознана!</p>
+                <p className="text-success/80 text-sm">Amount detected!</p>
               </div>
             )}
 
@@ -106,7 +106,7 @@ export function ReceiptScanner({ onAmountDetected }: IReceiptScannerProps) {
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-brand-primary mb-2">
                   <AlertCircle className="w-5 h-5" />
-                  <p className="font-medium text-sm">Проверьте найденные суммы</p>
+                  <p className="font-medium text-sm">Verify detected amounts</p>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-2">
@@ -118,7 +118,7 @@ export function ReceiptScanner({ onAmountDetected }: IReceiptScannerProps) {
                         closeModal();
                      }}
                   >
-                     <p className="text-xs text-surface-400 mb-1">Вероятнее всего</p>
+                     <p className="text-xs text-surface-400 mb-1">Most Likely</p>
                      <p className="text-lg font-bold text-surface-100">{result.detectedAmount} ₽</p>
                   </button>
 
@@ -132,7 +132,7 @@ export function ReceiptScanner({ onAmountDetected }: IReceiptScannerProps) {
                          closeModal();
                       }}
                     >
-                      <p className="text-xs text-surface-400 mb-1">Альтернатива</p>
+                      <p className="text-xs text-surface-400 mb-1">Alternative</p>
                       <p className="text-lg font-bold text-surface-100">{amount} ₽</p>
                     </button>
                   ))}
@@ -144,13 +144,13 @@ export function ReceiptScanner({ onAmountDetected }: IReceiptScannerProps) {
             {result.confidence < 0.3 && (
               <div className="text-center py-6">
                  <AlertCircle className="w-12 h-12 text-warning mx-auto mb-3" />
-                 <p className="text-surface-100 font-medium mb-1">Не удалось распознать чек</p>
-                 <p className="text-surface-400 text-sm mb-6">Попробуйте сделать фото при хорошем освещении, или введите сумму вручную.</p>
+                 <p className="text-surface-100 font-medium mb-1">Could not recognize receipt</p>
+                 <p className="text-surface-400 text-sm mb-6">Try taking a photo in better lighting or enter the amount manually.</p>
               </div>
             )}
 
             <button type="button" onClick={reset} className="btn btn-secondary btn-md w-full">
-              Попробовать ещё раз
+              Try Again
             </button>
 
           </div>

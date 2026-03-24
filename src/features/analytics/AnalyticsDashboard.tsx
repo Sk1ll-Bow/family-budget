@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, BarChart3 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BarChart3, Wallet } from 'lucide-react';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../core/useAuthStore';
 import {
   getCategoryBreakdown,
@@ -17,18 +18,18 @@ import {
 } from './analyticsService';
 import { cn } from '../../core/cn';
 import { ChartSkeleton } from '../../components/Skeleton';
+import { LucideIcon } from '../../components/LucideIcon';
 
 type TabKey = 'categories' | 'periods' | 'accounts';
 
 const TABS: { key: TabKey; label: string }[] = [
-  { key: 'categories', label: 'Категории' },
-  { key: 'periods', label: 'Периоды' },
-  { key: 'accounts', label: 'Счета' },
+  { key: 'categories', label: 'By Category' },
+  { key: 'periods', label: 'History' },
+  { key: 'accounts', label: 'Accounts' },
 ];
 
 /**
- * Analytics Dashboard with three tabs: Category Pie, Period Bars, Account Breakdown.
- * All data computed client-side from Dexie.
+ * Premium Analytics Dashboard with smooth tab transitions and high-end charts.
  */
 export function AnalyticsDashboard() {
   const { familyId } = useAuthStore();
@@ -66,38 +67,55 @@ export function AnalyticsDashboard() {
   const nextMonth = () => setCurrentDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1));
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="glass-card p-4 flex items-center justify-between">
-        <button type="button" onClick={prevMonth} className="btn btn-ghost btn-icon rounded-full" aria-label="Предыдущий месяц">
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <h2 className="text-lg font-semibold text-surface-100 capitalize">
-          {format(currentDate, 'LLLL yyyy', { locale: ru })}
-        </h2>
-        <button type="button" onClick={nextMonth} className="btn btn-ghost btn-icon rounded-full" aria-label="Следующий месяц">
-          <ChevronRight className="w-5 h-5" />
-        </button>
-      </div>
+    <div className="space-y-6 pb-10">
+      {/* Month Picker Header */}
+      <header className="flex items-center justify-between">
+        <h1 className="text-2xl font-black text-surface-50 tracking-tight">
+          Statistics
+        </h1>
+        <div className="flex items-center gap-1 glass p-1 rounded-2xl">
+          <button
+            onClick={prevMonth}
+            className="w-8 h-8 rounded-xl hover:bg-white/5 flex items-center justify-center transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4 text-surface-400" />
+          </button>
+          <span className="text-[10px] font-black text-surface-200 uppercase tracking-widest px-2">
+            {format(currentDate, 'MMM yyyy', { locale: ru })}
+          </span>
+          <button
+            onClick={nextMonth}
+            className="w-8 h-8 rounded-xl hover:bg-white/5 flex items-center justify-center transition-colors"
+          >
+            <ChevronRight className="w-4 h-4 text-surface-400" />
+          </button>
+        </div>
+      </header>
 
-      {/* Tabs */}
-      <div className="flex gap-1 p-1 glass-card">
+      {/* Modern Pill Tabs */}
+      <div className="flex p-1.5 glass rounded-[24px]">
         {TABS.map((t) => (
           <button
             key={t.key}
-            type="button"
             onClick={() => setTab(t.key)}
             className={cn(
-              'flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer',
-              tab === t.key
-                ? 'bg-brand-primary text-white shadow-[0_0_12px_rgba(99,102,241,0.2)]'
-                : 'text-surface-400 hover:text-surface-200'
+              'relative flex-1 py-3 text-[10px] font-black uppercase tracking-[0.15em] transition-colors outline-none',
+              tab === t.key ? 'text-white' : 'text-surface-500'
             )}
           >
-            {t.label}
+            {tab === t.key && (
+              <motion.div
+                layoutId="activeTab"
+                className="absolute inset-0 bg-brand-primary rounded-2xl shadow-[0_4px_12px_rgba(59,130,246,0.3)]"
+                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+              />
+            )}
+            <span className="relative z-10">{t.label}</span>
           </button>
         ))}
       </div>
+
+
 
       {/* Content */}
       {loading ? (
@@ -134,10 +152,10 @@ export function AnalyticsDashboard() {
                             if (!active || !payload?.length) return null;
                             const d = payload[0].payload as ICategoryBreakdown;
                             return (
-                              <div className="glass-card p-3 text-sm">
-                                <p className="font-medium text-surface-100">{d.categoryName}</p>
-                                <p className="text-surface-400">
-                                  {new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(d.amount)}
+                              <div className="glass-card p-3 text-sm border-white/10">
+                                <p className="font-black text-surface-50 uppercase tracking-widest text-[10px] mb-1">{d.categoryName}</p>
+                                <p className="text-surface-400 font-bold">
+                                  {new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(d.amount)}
                                   {' · '}{d.percentage}%
                                 </p>
                               </div>
@@ -150,24 +168,37 @@ export function AnalyticsDashboard() {
                     {/* Center label */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <div className="text-center">
-                        <p className="text-xs text-surface-400">Итого</p>
-                        <p className="text-lg font-bold text-surface-100">
-                          {new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(catData.total)}
-                        </p>
+                        <p className="text-[10px] font-black text-surface-500 uppercase tracking-widest mb-1">Total</p>
+                        <div className="flex items-baseline justify-center gap-0.5">
+                          <span className="text-2xl font-black text-surface-50 -tracking-tight">
+                            {new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(catData.total)}
+                          </span>
+                          <span className="text-sm font-bold text-brand-primary/60">€</span>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Legend */}
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-1 gap-2">
                     {catData.items.map((item) => (
-                      <div key={item.categoryId} className="flex items-center gap-3">
-                        <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                        <span className="text-sm text-surface-300 flex-1 min-w-0 truncate">{item.categoryName}</span>
-                        <span className="text-sm font-medium text-surface-100 shrink-0">
-                          {new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(item.amount)}
-                        </span>
-                        <span className="text-xs text-surface-500 w-10 text-right shrink-0">{item.percentage}%</span>
+                      <div key={item.categoryId} className="flex items-center gap-4 bg-white/5 rounded-2xl p-3 border border-white/5 transition-all hover:bg-white/10 group">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-black group-hover:scale-110 transition-transform" style={{ backgroundColor: `${item.color}20`, color: item.color }}>
+                          {/* Use category initial since we don't have easy access to whole category object here without more props */}
+                          <span className="uppercase">{item.categoryName.charAt(0)}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] font-black text-surface-500 uppercase tracking-widest leading-none mb-1">{item.categoryName}</p>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-sm font-black text-surface-100">{new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(item.amount)}</span>
+                            <span className="text-[10px] font-bold text-surface-500">€</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-black text-brand-primary">{item.percentage}%</p>
+                          <div className="w-12 h-1 bg-surface-800 rounded-full mt-1 overflow-hidden">
+                            <div className="h-full bg-brand-primary rounded-full" style={{ width: `${item.percentage}%` }} />
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -196,7 +227,7 @@ export function AnalyticsDashboard() {
                         tick={{ fill: '#9999bb', fontSize: 11 }}
                         axisLine={false}
                         tickLine={false}
-                        tickFormatter={(v: number) => v >= 1000 ? `${Math.round(v / 1000)}к` : String(v)}
+                        tickFormatter={(v: number) => v >= 1000 ? `${Math.round(v / 1000)}k` : String(v)}
                       />
                       <Tooltip
                         cursor={{ fill: 'rgba(255,255,255,0.04)' }}
@@ -204,10 +235,10 @@ export function AnalyticsDashboard() {
                           if (!active || !payload?.length) return null;
                           const d = payload[0].payload as IMonthlyTotal;
                           return (
-                            <div className="glass-card p-3 text-sm">
-                              <p className="font-medium text-surface-100">{d.monthLabel}</p>
-                              <p className="text-surface-400">
-                                {new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(d.total)}
+                            <div className="glass-card p-3 text-sm border-white/10">
+                              <p className="font-black text-surface-50 uppercase tracking-widest text-[10px] mb-1">{d.monthLabel}</p>
+                              <p className="text-surface-400 font-bold">
+                                {new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(d.total)}
                               </p>
                             </div>
                           );
@@ -221,32 +252,42 @@ export function AnalyticsDashboard() {
             </div>
           )}
 
-          {/* ACCOUNTS TAB — Horizontal bars */}
-          {tab === 'accounts' && (
-            <div className="glass-card p-5 space-y-4">
-              {accData.items.length === 0 ? (
-                <EmptyChart />
-              ) : (
-                accData.items.map((item) => (
-                  <div key={item.accountId} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-surface-300">{item.accountName}</span>
-                      <span className="font-medium text-surface-100">
-                        {new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(item.amount)}
-                      </span>
-                    </div>
-                    <div className="h-3 bg-surface-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-brand-primary to-brand-primary-light transition-all duration-500"
-                        style={{ width: `${item.percentage}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-surface-500 text-right">{item.percentage}%</p>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
+           {/* ACCOUNTS TAB — Horizontal bars */}
+           {tab === 'accounts' && (
+             <div className="glass-card p-5 space-y-3">
+               {accData.items.length === 0 ? (
+                 <EmptyChart />
+               ) : (
+                 accData.items.map((item) => (
+                   <div key={item.accountId} className="bg-white/5 rounded-2xl p-4 border border-white/5 space-y-3 transition-all hover:bg-white/10">
+                     <div className="flex items-center justify-between">
+                       <div className="flex items-center gap-3">
+                         <div className="w-8 h-8 rounded-lg bg-brand-secondary/10 flex items-center justify-center">
+                           <Wallet className="w-4 h-4 text-brand-secondary" />
+                         </div>
+                         <p className="text-[10px] font-black text-surface-500 uppercase tracking-widest">{item.accountName}</p>
+                       </div>
+                       <div className="flex items-baseline gap-1">
+                         <span className="text-sm font-black text-surface-100">
+                           {new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(item.amount)}
+                         </span>
+                         <span className="text-[10px] font-bold text-surface-500">€</span>
+                       </div>
+                     </div>
+                     <div className="space-y-1">
+                       <div className="h-2 bg-surface-800 rounded-full overflow-hidden">
+                         <div
+                           className="h-full rounded-full bg-gradient-to-r from-brand-secondary to-brand-secondary/40 transition-all duration-700 ease-out"
+                           style={{ width: `${item.percentage}%` }}
+                         />
+                       </div>
+                       <p className="text-[10px] font-black text-brand-secondary text-right tracking-widest">{item.percentage}%</p>
+                     </div>
+                   </div>
+                 ))
+               )}
+             </div>
+           )}
         </>
       )}
     </div>
@@ -257,8 +298,8 @@ function EmptyChart() {
   return (
     <div className="py-12 text-center">
       <BarChart3 className="w-12 h-12 text-surface-500 mx-auto mb-3" />
-      <p className="text-surface-300 font-medium">Нет данных</p>
-      <p className="text-surface-500 text-sm mt-1">Добавьте расходы для аналитики</p>
+      <p className="text-surface-300 font-medium">No Data Available</p>
+      <p className="text-surface-500 text-sm mt-1">Add expenses to see your analytics</p>
     </div>
   );
 }

@@ -9,56 +9,48 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @theme {
-  /* ── Primary Palette ────────────────────────────── */
-  --color-brand-primary: #6366f1;
-  --color-brand-primary-light: #818cf8;
-  --color-brand-primary-dark: #4f46e5;
+  /* ── Modern Finance Palette (Sleek & Professional) ────────────────────────────── */
+  --color-brand-primary: #3b82f6;       /* Electric Blue */
+  --color-brand-primary-light: #60a5fa;
+  --color-brand-primary-dark: #2563eb;
+  --color-brand-secondary: #6366f1;    /* Indigo */
 
   /* ── Accent / Success / Warning / Danger ────────── */
-  --color-brand-secondary: #10b981;
-  --color-accent: #f59e0b;
-  --color-success: #22c55e;
+  --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-danger: #ef4444;
 
-  /* ── Neutrals (Dark Mode First) ─────────────────── */
-  --color-surface-900: #0f0f23;
-  --color-surface-800: #1a1a2e;
-  --color-surface-700: #252547;
-  --color-surface-600: #2d2d5e;
-  --color-surface-500: #44446e;
-  --color-surface-400: #6b6b99;
-  --color-surface-300: #9999bb;
-  --color-surface-200: #ccccdd;
-  --color-surface-100: #e8e8f0;
-  --color-surface-50: #f5f5fa;
+  /* ── Neutrals (Deep Space Noir) ─────────────────── */
+  --color-surface-950: #030712;        /* Obsidian */
+  --color-surface-900: #0f172a;        /* Deep Slate */
+  --color-surface-800: #1e293b;
+  --color-surface-700: #334155;
+  --color-surface-600: #475569;
+  --color-surface-500: #64748b;
+  --color-surface-400: #94a3b8;
+  --color-surface-300: #cbd5e1;
+  --color-surface-200: #e2e8f0;
+  --color-surface-100: #f1f5f9;
+  --color-surface-50: #f8fafc;
 
-  /* ── Glass ──────────────────────────────────────── */
-  --color-glass: rgba(255, 255, 255, 0.06);
-  --color-glass-border: rgba(255, 255, 255, 0.1);
-  --color-glass-hover: rgba(255, 255, 255, 0.1);
+  /* ── Glass 3.0 (Deeper, high blur) ───────────────── */
+  --color-glass: rgba(15, 23, 42, 0.6);
+  --color-glass-border: rgba(255, 255, 255, 0.08);
+  --color-glass-hover: rgba(255, 255, 255, 0.12);
 
-  /* ── Chart Colors ───────────────────────────────── */
-  --color-chart-1: #6366f1;
-  --color-chart-2: #10b981;
-  --color-chart-3: #f59e0b;
-  --color-chart-4: #ef4444;
-  --color-chart-5: #8b5cf6;
-  --color-chart-6: #ec4899;
-  --color-chart-7: #06b6d4;
-  --color-chart-8: #84cc16;
-
-  /* ── Shadows ────────────────────────────────────── */
-  --shadow-glow: 0 0 24px rgba(99, 102, 241, 0.15);
-  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.12);
-  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.4);
+  /* ── Shadows (Electric Glow) ────────────────────── */
+  --shadow-glow: 0 0 32px rgba(59, 130, 246, 0.4);
+  --shadow-glow-indigo: 0 0 32px rgba(99, 102, 241, 0.3);
+  --shadow-card: 0 20px 50px -12px rgba(0, 0, 0, 0.8);
+  --shadow-modal: 0 32px 80px -16px rgba(0, 0, 0, 0.9);
 
   /* ── Radius ─────────────────────────────────────── */
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
   --radius-xl: 1.25rem;
-  --radius-2xl: 1.5rem;
+  --radius-2xl: 1.75rem;
+  --radius-3xl: 2.25rem;
   --radius-full: 9999px;
 }
 
@@ -66,60 +58,92 @@
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
 }
 
 body {
-  @apply bg-surface-900 text-surface-100 antialiased;
+  @apply bg-surface-950 text-surface-200 antialiased;
   min-height: 100dvh;
+  overflow-x: hidden;
 }
 
-/* ═══════ GLASSMORPHISM UTILITIES ═══════ */
+/* ═══════ MESH GRADIENT BACKGROUND ═══════ */
+
+.ambient-bg {
+  position: fixed;
+  inset: 0;
+  background-color: #030712;
+  background-image: 
+    radial-gradient(circle at 0% 0%, rgba(30, 58, 138, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 100% 100%, rgba(15, 23, 42, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+  z-index: -1;
+}
+
+.spotlight {
+  position: absolute;
+  top: -20%;
+  left: 30%;
+  width: 60%;
+  height: 60%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, transparent 70%);
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ═══════ REFINED GLASS ═══════ */
 
 .glass {
   background: var(--color-glass);
   border: 1px solid var(--color-glass-border);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: var(--radius-xl);
-  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
+  border-radius: var(--radius-2xl);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
 }
 
 .glass-card:hover {
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: var(--shadow-glow);
+  transform: translateY(-2px);
+  box-shadow: 0 20px 60px -12px rgba(0, 0, 0, 0.6);
 }
 
+/* ═══════ BOLD INPUT SYSTEM ═══════ */
+
 .glass-input {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-md);
-  color: var(--color-surface-100);
-  transition: all 0.2s ease;
+  @apply bg-surface-900/60 border-white/5 rounded-2xl px-5 py-4 text-surface-50 transition-all duration-300 font-semibold text-lg;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-width: 1px;
 }
 
 .glass-input:focus {
   outline: none;
-  border-color: var(--color-brand-primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  @apply border-brand-primary/40 bg-brand-primary/5;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1), var(--shadow-glow);
 }
 
 .glass-input::placeholder {
-  color: var(--color-surface-400);
+  @apply text-surface-600 font-medium;
 }
+
 
 /* ═══════ BUTTONS ═══════ */
 

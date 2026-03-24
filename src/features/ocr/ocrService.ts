@@ -43,14 +43,14 @@ export async function processReceiptImage(imageFile: File): Promise<OcrResult> {
 
 /**
  * Parses raw OCR text to find the "Total" amount.
- * Looks for keywords like "ИТОГО", "СУММА", "TOTAL", "=" near numbers.
+ * Looks for keywords like "TOTAL", "AMOUNT", "DUE", "=" near numbers.
  */
 function parseReceiptText(text: string): OcrResult {
   const lines = text.split('\n').map(l => l.toUpperCase().trim()).filter(Boolean);
   
   const amountRegex = /(\d{1,3}(?:[ .,]\d{3})*(?:[.,]\d{2}))/; // matches 1,234.56 or 1 234,56
   
-  const keywords = ['ИТОГО', 'СУММА', 'К ОПЛАТЕ', 'TOTAL', 'Итог'];
+  const keywords = ['TOTAL', 'AMOUNT', 'DUE', 'PAY', 'SUM'];
   let bestMatch: number | null = null;
   let highestConfidence = 0;
   const candidates = new Set<number>();

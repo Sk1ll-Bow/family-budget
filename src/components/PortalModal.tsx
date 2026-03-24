@@ -59,37 +59,39 @@ export function PortalModal({ modalId, title, children, className, size = 'md' }
     <div
       ref={overlayRef}
       onClick={handleOverlayClick}
-      className="fixed inset-0 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in"
-      style={{ zIndex, backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
+      className="fixed inset-0 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 animate-fade-in"
+      style={{ zIndex, backgroundColor: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(8px)' }}
       role="dialog"
       aria-modal="true"
       aria-label={title}
     >
       <div
         className={cn(
-          'w-full bg-surface-800 border border-glass-border animate-slide-up',
-          'rounded-t-2xl sm:rounded-2xl',
-          'max-h-[90dvh] flex flex-col',
+          'w-full glass-card animate-slide-up flex flex-col',
+          'rounded-t-3xl sm:rounded-2xl',
+          'max-h-[92dvh] sm:max-h-[90dvh]',
           sizeClasses[size],
           className
         )}
-        style={{ backdropFilter: 'blur(24px)' }}
       >
+        {/* Handle for mobile swipe-down feel */}
+        <div className="sm:hidden w-12 h-1.5 bg-surface-700/50 rounded-full mx-auto mt-3 mb-1" />
+
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-glass-border shrink-0">
-          <h2 className="text-lg font-semibold text-surface-100">{title}</h2>
+        <div className="flex items-center justify-between px-6 py-5 shrink-0">
+          <h2 className="text-xl font-bold text-surface-50 tracking-tight">{title}</h2>
           <button
             type="button"
             onClick={() => closeModal()}
-            className="btn btn-ghost btn-icon rounded-full"
-            aria-label="Закрыть"
+            className="w-10 h-10 rounded-full bg-surface-800/80 hover:bg-surface-700/80 flex items-center justify-center transition-colors transition-all active:scale-90"
+            aria-label="Close"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 text-surface-400" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-5 min-h-0">
+        <div className="flex-1 overflow-y-auto px-6 pb-8 min-h-0">
           {children}
         </div>
       </div>

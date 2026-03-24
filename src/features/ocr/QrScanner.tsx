@@ -32,7 +32,7 @@ export function QrScanner({ onAmountDetected }: IQrScannerProps) {
     try {
       // Modern browsers support BarcodeDetector API
       if (!('BarcodeDetector' in window)) {
-        throw new Error('Ваш браузер не поддерживает сканирование штрихкодов.');
+        throw new Error('Your browser does not support barcode scanning.');
       }
 
       // @ts-ignore - TS doesn't have BarcodeDetector types built-in yet
@@ -50,14 +50,14 @@ export function QrScanner({ onAmountDetected }: IQrScannerProps) {
            onAmountDetected(amount);
            closeModal();
         } else {
-           setError('QR-код чека не содержит сумму или имеет неверный формат.');
+           setError('Receipt QR code does not contain an amount or has an invalid format.');
         }
       } else {
-        setError('QR-код не найден на изображении. Убедитесь, что он чёткий.');
+        setError('QR code not found. Please ensure the image is clear.');
       }
     } catch (err: any) {
       console.error('[QR] Error:', err);
-      setError(err.message || 'Ошибка обработки QR-кода.');
+      setError(err.message || 'Error processing QR code.');
     } finally {
       setIsProcessing(false);
     }
@@ -71,7 +71,7 @@ export function QrScanner({ onAmountDetected }: IQrScannerProps) {
   if (!isOpen) return null;
 
   return (
-    <PortalModal modalId={MODAL_QR_SCANNER} title="Сканирование QR-кода">
+    <PortalModal modalId={MODAL_QR_SCANNER} title="Scan QR Code">
       <div className="space-y-6">
         
         <input 
@@ -89,14 +89,14 @@ export function QrScanner({ onAmountDetected }: IQrScannerProps) {
               <QrCode className="w-8 h-8 text-surface-300" />
             </div>
             <p className="text-surface-300 mb-6 max-w-xs mx-auto text-sm">
-              Сфотографируйте QR-код на чеке из магазина (обычно находится внизу).
+              Take a photo of the QR code on your store receipt (usually at the bottom).
             </p>
             <button 
               type="button" 
               className="btn btn-primary btn-lg w-full"
               onClick={() => fileInputRef.current?.click()}
             >
-              Сканировать QR
+              Scan QR
             </button>
           </div>
         )}
@@ -104,17 +104,17 @@ export function QrScanner({ onAmountDetected }: IQrScannerProps) {
         {isProcessing && (
           <div className="text-center py-12 animate-fade-in">
             <Loader2 className="w-12 h-12 text-brand-primary animate-spin mx-auto mb-4" />
-            <p className="text-surface-100 font-medium text-lg">Поиск QR-кода...</p>
+            <p className="text-surface-100 font-medium text-lg">Searching for QR...</p>
           </div>
         )}
 
         {error && (
            <div className="text-center py-6 animate-fade-in">
              <AlertCircle className="w-12 h-12 text-warning mx-auto mb-3" />
-             <p className="text-surface-100 font-medium mb-1">Внимание</p>
+             <p className="text-surface-100 font-medium mb-1">Attention</p>
              <p className="text-surface-400 text-sm mb-6 max-w-[280px] mx-auto">{error}</p>
              <button type="button" onClick={reset} className="btn btn-secondary btn-md w-full">
-               Попробовать снова
+               Try Again
              </button>
            </div>
         )}

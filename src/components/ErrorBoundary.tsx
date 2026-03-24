@@ -47,44 +47,45 @@ export class ErrorBoundary extends Component<IErrorBoundaryProps, IErrorBoundary
       if (this.props.fallback) return this.props.fallback;
 
       return (
-        <div className="min-h-screen flex items-center justify-center p-6 bg-surface-900">
-          <div className="glass-card p-8 max-w-md w-full text-center animate-scale-in">
-            <div className="mx-auto w-16 h-16 rounded-full bg-danger/10 flex items-center justify-center mb-6">
-              <AlertTriangle className="w-8 h-8 text-danger" />
+        <div className="min-h-dvh flex items-center justify-center p-6 relative overflow-hidden">
+          <div className="ambient-glow w-full h-full" />
+          
+          <div className="glass-card p-10 max-w-sm w-full text-center animate-scale-in relative z-10 border-danger/20">
+            <div className="mx-auto w-20 h-20 rounded-[2rem] bg-danger/10 flex items-center justify-center mb-8 shadow-2xl shadow-danger/20 border border-danger/20 relative group">
+              <div className="absolute inset-0 bg-danger/20 blur-2xl rounded-full opacity-50" />
+              <AlertTriangle className="w-10 h-10 text-danger relative z-10" />
             </div>
 
-            <h1 className="text-xl font-bold text-surface-100 mb-2">
-              Что-то пошло не так
+            <h1 className="text-2xl font-black text-surface-50 tracking-tight mb-3">
+              Oops! Something went wrong
             </h1>
-            <p className="text-surface-400 text-sm mb-6">
-              Произошла непредвиденная ошибка. Пожалуйста, отправьте этот ID в поддержку.
+            <p className="text-[10px] font-bold text-surface-500 uppercase tracking-widest leading-relaxed mb-8">
+              An error occurred. Please provide this ID to support to help resolve the issue.
             </p>
 
             {this.state.errorId && (
-              <div className="glass-input px-4 py-3 text-xs font-mono text-surface-300 mb-6 text-center select-all">
+              <div className="bg-surface-900/50 px-4 py-4 rounded-2xl text-[10px] font-black text-brand-primary mb-8 select-all border border-brand-primary/10 tracking-widest">
                 {this.state.errorId}
               </div>
             )}
 
-            <div className="flex gap-3">
+            <div className="space-y-3">
               <button
                 type="button"
                 onClick={this.handleCopy}
-                className="btn btn-secondary btn-md flex-1"
-                aria-label="Скопировать ID ошибки"
+                className="w-full h-12 rounded-xl bg-white/5 text-surface-100 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all hover:bg-white/10 active:scale-95 border border-white/5"
               >
                 <Copy className="w-4 h-4" />
-                {this.state.copying ? 'Скопировано!' : 'Скопировать ID'}
+                {this.state.copying ? 'Copied!' : 'Copy Error ID'}
               </button>
 
               <button
                 type="button"
                 onClick={this.handleReload}
-                className="btn btn-primary btn-md flex-1"
-                aria-label="Перезагрузить страницу"
+                className="w-full h-12 rounded-xl bg-danger text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all active:scale-95 shadow-lg shadow-danger/20"
               >
                 <RefreshCw className="w-4 h-4" />
-                Перезагрузить
+                Reload Page
               </button>
             </div>
           </div>
