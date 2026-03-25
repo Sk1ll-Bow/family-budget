@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, PlusCircle, BarChart3, Settings, Wallet } from 'lucide-react';
+import { Home, PlusCircle, BarChart3, Settings, Users } from 'lucide-react';
 import { cn } from '../core/cn';
 import { useModalStore } from '../core/useModalStore';
 
@@ -22,7 +22,7 @@ export function BottomNav() {
   const navItems: INavItem[] = [
     { to: '/', icon: <Home className="w-6 h-6" />, label: 'Home' },
     { to: '/analytics', icon: <BarChart3 className="w-6 h-6" />, label: 'Stats' },
-    { to: '/accounts', icon: <Wallet className="w-6 h-6" />, label: 'Wallet' },
+    { to: '/family', icon: <Users className="w-6 h-6" />, label: 'Family' },
     { to: '/settings', icon: <Settings className="w-6 h-6" />, label: 'Settings' },
   ];
 

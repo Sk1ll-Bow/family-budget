@@ -14,6 +14,7 @@ import { ExpenseList } from './features/expenses/ExpenseList';
 import { AddExpenseModal } from './features/expenses/AddExpenseModal';
 import { AnalyticsDashboard } from './features/analytics/AnalyticsDashboard';
 import { SettingsPage } from './features/settings/SettingsPage';
+import { FamilyManagementPage } from './features/family/FamilyManagementPage';
 import { BottomNav } from './components/BottomNav';
 
 /**
@@ -127,6 +128,14 @@ function AppShell() {
           <RequireFamily>
             <MainLayout>
               <AnalyticsDashboard />
+            </MainLayout>
+          </RequireFamily>
+        } />
+
+        <Route path="/family" element={
+          <RequireFamily>
+            <MainLayout>
+              <FamilyManagementPage />
             </MainLayout>
           </RequireFamily>
         } />
