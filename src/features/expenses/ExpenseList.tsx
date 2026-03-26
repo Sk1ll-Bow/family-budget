@@ -11,8 +11,9 @@ import { db } from '../../core/db';
 import { useAuthStore } from '../../core/useAuthStore';
 import { deleteExpense } from './expenseService';
 import { ExpenseRow } from './ExpenseRow';
+import { EditExpenseModal, MODAL_EDIT_EXPENSE } from './EditExpenseModal';
 import { ExpenseRowSkeleton } from '../../components/Skeleton';
-import type { ICategory, IAccount } from '../../core/types';
+import type { IExpense, ICategory, IAccount, IStore } from '../../core/types';
 import { cn } from '../../core/cn';
 import { toast } from 'sonner';
 import { useModalStore } from '../../core/useModalStore';
@@ -26,7 +27,8 @@ const MODAL_ADD_EXPENSE = 'add-expense';
  * Includes month navigation and summary header.
  */
 export function ExpenseList() {
-  const { familyId } = useAuthStore();
+  const { familyId, profile } = useAuthStore();
+  const { openModal } = useModalStore();
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const monthStart = startOfMonth(currentDate).toISOString();
@@ -55,9 +57,15 @@ export function ExpenseList() {
     () => (familyId ? db.accounts.where('familyId').equals(familyId).toArray() : []),
     [familyId]
   );
+  
+  const stores = useLiveQuery(
+    () => (familyId ? db.stores.where('familyId').equals(familyId).toArray() : []),
+    [familyId]
+  );
 
   const categoryMap = new Map((categories ?? []).map((c) => [c.id, c]));
   const accountMap = new Map((accounts ?? []).map((a) => [a.id, a]));
+  const storeMap = new Map((stores ?? []).map((s) => [s.id, s]));
 
   const totalMonth = (expenses ?? []).reduce((sum, e) => sum + e.amount, 0);
   const expenseCount = (expenses ?? []).length;
@@ -70,6 +78,10 @@ export function ExpenseList() {
     toast.success('Transaction deleted');
   }, []);
 
+  const handleEdit = useCallback((expense: IExpense) => {
+    openModal(MODAL_EDIT_EXPENSE, { expense });
+  }, [openModal]);
+
   const isLoading = expenses === undefined;
 
   // Group by date
@@ -79,9 +91,6 @@ export function ExpenseList() {
     groups[key]!.push(expense);
     return groups;
   }, {});
-
-  const { profile } = useAuthStore();
-  const { openModal } = useModalStore();
 
   return (
     <div className="space-y-8 pb-10">
@@ -201,6 +210,8 @@ export function ExpenseList() {
                   expense={expense}
                   category={categoryMap.get(expense.categoryId ?? '')}
                   account={accountMap.get(expense.accountId ?? '')}
+                  store={storeMap.get(expense.storeId ?? '')}
+                  onEdit={handleEdit}
                   onDelete={handleDelete}
                 />
               ))}
@@ -208,6 +219,9 @@ export function ExpenseList() {
           </div>
         ))
       )}
+
+      {/* Modals */}
+      <EditExpenseModal />
     </div>
   );
 }

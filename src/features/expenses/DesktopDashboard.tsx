@@ -10,7 +10,8 @@ import {
   MoreHorizontal,
   Plus,
   Filter,
-  Download
+  Download,
+  Trash2
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -31,6 +32,10 @@ import { cn } from '../../core/cn';
 import { useModalStore } from '../../core/useModalStore';
 import { ExpenseRow } from './ExpenseRow';
 import { formatCurrency, formatNumber } from '../../core/formatters';
+import { deleteExpense } from './expenseService';
+import { MODAL_EDIT_EXPENSE } from './EditExpenseModal';
+import { toast } from 'sonner';
+import type { IExpense } from '../../core/types';
 
 const MODAL_ADD_EXPENSE = 'add-expense';
 
@@ -64,7 +69,21 @@ export function DesktopDashboard() {
     [familyId]
   );
 
+  const stores = useLiveQuery(
+    () => familyId ? db.stores.where('familyId').equals(familyId).toArray() : [],
+    [familyId]
+  );
+
   // ─── COMPUTATIONS ───
+
+  const handleDelete = async (id: string) => {
+    await deleteExpense(id);
+    toast.success('Transaction deleted');
+  };
+
+  const handleEdit = (expense: IExpense) => {
+    openModal(MODAL_EDIT_EXPENSE, { expense });
+  };
 
   const currentMonthExpenses = useMemo(() => 
     (expenses ?? []).filter(e => e.spentAt >= monthStart && e.spentAt <= monthEnd),
@@ -132,6 +151,7 @@ export function DesktopDashboard() {
 
   const categoryMap = new Map((categories ?? []).map((c) => [c.id, c]));
   const accountMap = new Map((accounts ?? []).map((a) => [a.id, a]));
+  const storeMap = new Map((stores ?? []).map((s) => [s.id, s]));
 
   return (
     <div className="space-y-8">
@@ -340,6 +360,7 @@ export function DesktopDashboard() {
               {recentExpenses.map((expense) => {
                 const category = categoryMap.get(expense.categoryId || '');
                 const account = accountMap.get(expense.accountId || '');
+                const store = storeMap.get(expense.storeId || '');
                 
                 return (
                   <tr key={expense.id} className="hover:bg-white/5 transition-colors group">
@@ -348,7 +369,10 @@ export function DesktopDashboard() {
                         <div className="w-8 h-8 rounded-lg bg-surface-900 flex items-center justify-center font-bold text-surface-400 group-hover:scale-110 transition-transform">
                           {expense.description?.charAt(0) || expense.amount.toString().charAt(0)}
                         </div>
-                        <span className="text-sm font-bold text-surface-50 truncate max-w-[140px]">{expense.description || 'No Description'}</span>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-surface-50 truncate max-w-[140px]">{expense.description || 'No Description'}</span>
+                          {store && <span className="text-[10px] font-black text-surface-400 mt-1 uppercase tracking-widest">{store.name}</span>}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -368,10 +392,25 @@ export function DesktopDashboard() {
                     <td className="px-6 py-4 text-right">
                       <span className="text-sm font-black text-surface-50">-{formatNumber(expense.amount)} €</span>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                       <button className="text-surface-600 hover:text-surface-100 transition-colors">
-                         <MoreHorizontal className="w-5 h-5 mx-auto" />
-                       </button>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(expense)}
+                          className="w-8 h-8 rounded-lg bg-brand-primary/10 flex items-center justify-center hover:bg-brand-primary hover:text-white text-brand-primary active:scale-95 transition-all"
+                          aria-label="Edit"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pencil"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(expense.id)}
+                          className="w-8 h-8 rounded-lg bg-danger/10 flex items-center justify-center hover:bg-danger hover:text-white text-danger active:scale-95 transition-all"
+                          aria-label="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

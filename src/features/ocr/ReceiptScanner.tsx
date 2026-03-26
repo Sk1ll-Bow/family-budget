@@ -1,22 +1,32 @@
-import { useState, useRef, useCallback } from 'react';
-import { Camera, X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useState, useRef } from 'react';
+import {
+  Camera, Loader2, CheckCircle2, AlertCircle,
+  List, Trash2, ShoppingCart, Store, Tag,
+} from 'lucide-react';
 import { PortalModal } from '../../components/PortalModal';
 import { useModalStore } from '../../core/useModalStore';
-import { processReceiptImage, type OcrResult } from './ocrService';
-import { cn } from '../../core/cn';
+import { processReceiptWithGemini, type OcrResult } from './ocrService';
+import type { IReceiptPosition } from './geminiService';
+import { formatCurrency } from '../../core/formatters';
 
 export const MODAL_RECEIPT_SCANNER = 'receipt-scanner';
 
 interface IReceiptScannerProps {
-  onAmountDetected: (amount: number) => void;
+  /** Called with the full list of positions the user confirmed */
+  onPositionsConfirmed: (positions: IReceiptPosition[]) => void;
+  existingCategoryNames?: string[];
+  existingStoreNames?: string[];
 }
 
-export function ReceiptScanner({ onAmountDetected }: IReceiptScannerProps) {
+export function ReceiptScanner({ onPositionsConfirmed, existingCategoryNames = [], existingStoreNames = [] }: IReceiptScannerProps) {
   const { closeModal, stack } = useModalStore();
   const isOpen = stack.some((m) => m.id === MODAL_RECEIPT_SCANNER);
-  
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<OcrResult | null>(null);
+  /** Mutable list of positions the user can remove items from */
+  const [positions, setPositions] = useState<IReceiptPosition[]>([]);
+  const [isAdding, setIsAdding] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -25,33 +35,50 @@ export function ReceiptScanner({ onAmountDetected }: IReceiptScannerProps) {
 
     setIsProcessing(true);
     setResult(null);
+    setPositions([]);
 
-    const ocrResult = await processReceiptImage(file);
-    setResult(ocrResult);
-    setIsProcessing(false);
-
-    // If confidence is high, auto-complete
-    if (ocrResult.confidence >= 0.7 && ocrResult.detectedAmount) {
-      setTimeout(() => {
-        onAmountDetected(ocrResult.detectedAmount!);
-        closeModal();
-      }, 1500);
+    try {
+      const ocrResult = await processReceiptWithGemini(file, existingCategoryNames, existingStoreNames);
+      setResult(ocrResult);
+      setPositions(ocrResult.positions ?? []);
+    } catch (err) {
+      console.error('Gemini error:', err);
+    } finally {
+      setIsProcessing(false);
     }
+  };
+
+  const removePosition = (idx: number) => {
+    setPositions((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleAddAll = () => {
+    if (positions.length === 0) return;
+    setIsAdding(true);
+    onPositionsConfirmed(positions);
+    // Brief delay for visual feedback, then close
+    setTimeout(() => {
+      setIsAdding(false);
+      closeModal();
+    }, 300);
   };
 
   const reset = () => {
     setResult(null);
+    setPositions([]);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   if (!isOpen) return null;
 
+  const totalSum = positions.reduce((s, p) => s + p.amount, 0);
+
   return (
-    <PortalModal modalId={MODAL_RECEIPT_SCANNER} title="Scan Receipt">
+    <PortalModal modalId={MODAL_RECEIPT_SCANNER} title="Scan Receipt" size="lg">
       <div className="space-y-6">
-        
+
         {/* Hidden File Input */}
-        <input 
+        <input
           type="file"
           accept="image/*"
           capture="environment"
@@ -67,10 +94,10 @@ export function ReceiptScanner({ onAmountDetected }: IReceiptScannerProps) {
               <Camera className="w-8 h-8 text-surface-300" />
             </div>
             <p className="text-surface-300 mb-6 max-w-xs mx-auto text-sm">
-              Take a photo of the receipt so the total amount is clearly visible.
+              Take a photo of the receipt. Gemini AI will extract every item automatically.
             </p>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="btn btn-primary btn-lg w-full"
               onClick={() => fileInputRef.current?.click()}
             >
@@ -83,74 +110,120 @@ export function ReceiptScanner({ onAmountDetected }: IReceiptScannerProps) {
         {isProcessing && (
           <div className="text-center py-12 animate-fade-in">
             <Loader2 className="w-12 h-12 text-brand-primary animate-spin mx-auto mb-4" />
-            <p className="text-surface-100 font-medium text-lg">Recognizing...</p>
-            <p className="text-surface-400 text-sm mt-2">Analyzing receipt text</p>
+            <p className="text-surface-100 font-medium text-lg">Gemini is thinking...</p>
+            <p className="text-surface-400 text-sm mt-2">Extracting items and prices</p>
           </div>
         )}
 
-        {/* State 3: Results (Medium/Low Confidence) */}
+        {/* State 3: Results */}
         {!isProcessing && result && (
           <div className="animate-fade-in space-y-5">
-            
-            {/* High confidence auto-close feedback */}
-            {result.confidence >= 0.7 && result.detectedAmount && (
-              <div className="glass-card p-6 bg-success/10 border-success/20 text-center">
-                <CheckCircle2 className="w-12 h-12 text-success mx-auto mb-3" />
-                <p className="text-success font-bold text-xl mb-1">{result.detectedAmount} ₽</p>
-                <p className="text-success/80 text-sm">Amount detected!</p>
-              </div>
-            )}
 
-            {/* Medium Confidence - Show Candidates */}
-            {result.confidence >= 0.3 && result.confidence < 0.7 && result.detectedAmount && (
+            {/* Positions list */}
+            {positions.length > 0 && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-brand-primary mb-2">
-                  <AlertCircle className="w-5 h-5" />
-                  <p className="font-medium text-sm">Verify detected amounts</p>
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-brand-primary">
+                    <List className="w-5 h-5" />
+                    <p className="font-medium text-sm">
+                      {positions.length} item{positions.length > 1 ? 's' : ''} found
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-black text-surface-500 uppercase tracking-widest">Total</p>
+                    <p className="text-lg font-black text-surface-50">{formatCurrency(totalSum)}</p>
+                  </div>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                     type="button"
-                     className="glass-card p-4 border-brand-primary/40 hover:bg-brand-primary/10 transition-colors text-center"
-                     onClick={() => {
-                        onAmountDetected(result.detectedAmount!);
-                        closeModal();
-                     }}
-                  >
-                     <p className="text-xs text-surface-400 mb-1">Most Likely</p>
-                     <p className="text-lg font-bold text-surface-100">{result.detectedAmount} ₽</p>
-                  </button>
 
-                  {result.candidates.map((amount) => (
-                    <button
-                      key={amount}
-                      type="button"
-                      className="glass-card p-4 hover:bg-surface-700 transition-colors text-center"
-                      onClick={() => {
-                         onAmountDetected(amount);
-                         closeModal();
-                      }}
+                {/* Position cards */}
+                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                  {positions.map((pos, idx) => (
+                    <div
+                      key={idx}
+                      className="glass-card p-4 space-y-3 relative group"
                     >
-                      <p className="text-xs text-surface-400 mb-1">Alternative</p>
-                      <p className="text-lg font-bold text-surface-100">{amount} ₽</p>
-                    </button>
+                      {/* Delete button */}
+                      <button
+                        type="button"
+                        aria-label="Remove item"
+                        className="absolute top-3 right-3 w-8 h-8 rounded-xl bg-danger/10 flex items-center justify-center opacity-60 hover:opacity-100 hover:bg-danger/20 transition-all cursor-pointer"
+                        onClick={() => removePosition(idx)}
+                      >
+                        <Trash2 className="w-4 h-4 text-danger" />
+                      </button>
+
+                      {/* Row 1: Name + Amount */}
+                      <div className="flex items-start justify-between pr-10">
+                        <p className="text-sm font-bold text-surface-100 leading-tight min-w-0 flex-1 mr-3">
+                          {pos.name}
+                        </p>
+                        <p className="text-lg font-black text-brand-primary shrink-0">
+                          {formatCurrency(pos.amount)}
+                        </p>
+                      </div>
+
+                      {/* Row 2: Metadata chips */}
+                      <div className="flex flex-wrap gap-2">
+                        {pos.storeName && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-surface-700/50 text-[10px] font-bold text-surface-300 uppercase tracking-wider">
+                            <Store className="w-3 h-3" />
+                            {pos.storeName}
+                          </span>
+                        )}
+                        {pos.categorySuggestion && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-brand-primary/10 text-[10px] font-bold text-brand-primary uppercase tracking-wider">
+                            <Tag className="w-3 h-3" />
+                            {pos.categorySuggestion}
+                          </span>
+                        )}
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-surface-700/50 text-[10px] font-bold text-surface-400 tracking-wider">
+                          {new Date(pos.spentAt).toLocaleDateString()}
+                        </span>
+                      </div>
+
+                      {/* Row 3: Details (quantity, discounts, etc.) */}
+                      {pos.details && (
+                        <p className="text-xs text-surface-400 leading-relaxed">
+                          {pos.details}
+                        </p>
+                      )}
+                    </div>
                   ))}
                 </div>
+
+                {/* Add All button */}
+                <button
+                  type="button"
+                  disabled={isAdding || positions.length === 0}
+                  className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-black text-base py-5 rounded-[24px] shadow-2xl shadow-brand-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 group"
+                  onClick={handleAddAll}
+                >
+                  {isAdding ? (
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-5 h-5" />
+                      <span className="uppercase tracking-[0.15em]">
+                        Add All {positions.length} Item{positions.length > 1 ? 's' : ''}
+                      </span>
+                    </>
+                  )}
+                </button>
               </div>
             )}
 
-            {/* Low Confidence - Failed */}
-            {result.confidence < 0.3 && (
+            {/* No results */}
+            {positions.length === 0 && (
               <div className="text-center py-6">
-                 <AlertCircle className="w-12 h-12 text-warning mx-auto mb-3" />
-                 <p className="text-surface-100 font-medium mb-1">Could not recognize receipt</p>
-                 <p className="text-surface-400 text-sm mb-6">Try taking a photo in better lighting or enter the amount manually.</p>
+                <AlertCircle className="w-12 h-12 text-warning mx-auto mb-3" />
+                <p className="text-surface-100 font-medium mb-1">Could not extract items</p>
+                <p className="text-surface-400 text-sm mb-6">Try again or enter the amount manually.</p>
               </div>
             )}
 
             <button type="button" onClick={reset} className="btn btn-secondary btn-md w-full">
-              Try Again
+              Try Another Photo
             </button>
 
           </div>

@@ -7,11 +7,14 @@ import type { IExpense, ICategory, IAccount } from '../../core/types';
 import { cn } from '../../core/cn';
 import { LucideIcon } from '../../components/LucideIcon';
 import { formatCurrency } from '../../core/formatters';
+import type { IStore } from '../../core/types';
 
 interface IExpenseRowProps {
   expense: IExpense;
   category: ICategory | undefined;
   account: IAccount | undefined;
+  store: IStore | undefined;
+  onEdit: (expense: IExpense) => void;
   onDelete: (id: string) => void;
 }
 
@@ -22,6 +25,8 @@ export const ExpenseRow = memo(function ExpenseRow({
   expense,
   category,
   account,
+  store,
+  onEdit,
   onDelete,
 }: IExpenseRowProps) {
   const categoryName = category?.name ?? 'Uncategorized';
@@ -62,6 +67,7 @@ export const ExpenseRow = memo(function ExpenseRow({
           )}
         </div>
         <p className="text-[10px] font-black text-surface-500 uppercase tracking-widest truncate leading-none">
+          {store?.name && <span className="text-surface-300 mr-2 px-1.5 py-0.5 rounded-md bg-white/5 border border-white/5">{store.name}</span>}
           {expense.description || accountName || 'No description'}
         </p>
       </div>
@@ -76,18 +82,25 @@ export const ExpenseRow = memo(function ExpenseRow({
         </p>
       </div>
 
-      {/* Modern Delete Button */}
-      <button
-        type="button"
-        onClick={() => onDelete(expense.id)}
-        className={cn(
-          'w-10 h-10 rounded-2xl bg-danger/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 shrink-0 absolute right-4 bg-surface-950/90 backdrop-blur-xl',
-          'hover:bg-danger hover:text-white text-danger active:scale-90 border border-white/5'
-        )}
-        aria-label="Delete"
-      >
-        <Trash2 className="w-5 h-5" />
-      </button>
+      {/* Modern Actions Container */}
+      <div className="flex flex-col sm:flex-row gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all duration-300 shrink-0 absolute right-2 sm:right-4 bg-surface-950/90 backdrop-blur-xl p-1 rounded-2xl border border-white/5">
+        <button
+          type="button"
+          onClick={() => onEdit(expense)}
+          className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center hover:bg-brand-primary hover:text-white text-brand-primary active:scale-90 transition-all"
+          aria-label="Edit"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pencil"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+        </button>
+        <button
+          type="button"
+          onClick={() => onDelete(expense.id)}
+          className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-danger/10 flex items-center justify-center hover:bg-danger hover:text-white text-danger active:scale-90 transition-all"
+          aria-label="Delete"
+        >
+          <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+        </button>
+      </div>
     </motion.div>
   );
 });

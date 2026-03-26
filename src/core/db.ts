@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { IFamily, ICategory, IAccount, IExpense, IUserProfile } from './types';
+import type { IFamily, ICategory, IStore, IAccount, IExpense, IUserProfile } from './types';
 
 /**
  * Local-first IndexedDB database using Dexie.js.
@@ -9,6 +9,7 @@ import type { IFamily, ICategory, IAccount, IExpense, IUserProfile } from './typ
 export class FamilyBudgetDB extends Dexie {
   families!: Table<IFamily>;
   categories!: Table<ICategory>;
+  stores!: Table<IStore>;
   accounts!: Table<IAccount>;
   expenses!: Table<IExpense>;
   profiles!: Table<IUserProfile>;
@@ -22,6 +23,18 @@ export class FamilyBudgetDB extends Dexie {
       accounts: 'id, familyId, type',
       expenses: 'id, familyId, userId, categoryId, accountId, spentAt, syncStatus',
       profiles: 'id, email',
+    });
+
+    this.version(3).stores({
+      stores: 'id, familyId',
+      expenses: 'id, familyId, userId, categoryId, accountId, storeId, spentAt, syncStatus',
+    }).upgrade(tx => {
+      // Adding storeId to existing expenses as null if needed
+      return tx.table('expenses').toCollection().modify(expense => {
+        if (expense.storeId === undefined) {
+          expense.storeId = null;
+        }
+      });
     });
   }
 }

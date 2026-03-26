@@ -1,17 +1,17 @@
-import { useState, useEffect, useCallback, memo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
-  DollarSign, Tag, CreditCard, Calendar, FileText,
-  Camera, QrCode, Loader2, Check,
+  Camera, QrCode, Loader2, Check, Store,
 } from 'lucide-react';
 import { PortalModal } from '../../components/PortalModal';
 import { useAuthStore } from '../../core/useAuthStore';
-import { addExpense } from './expenseService';
-import { getCategories } from '../categories/categoryService';
+import { addExpense, addBatchExpenses } from './expenseService';
+import { getCategories, addCategory } from '../categories/categoryService';
 import { getAccounts } from '../accounts/accountService';
-import type { ICategory, IAccount } from '../../core/types';
+import { getStores, addStore } from '../stores/storeService';
+import type { ICategory, IAccount, IStore } from '../../core/types';
 import { cn } from '../../core/cn';
 import { toast } from 'sonner';
 import { useModalStore } from '../../core/useModalStore';
@@ -20,7 +20,9 @@ import { db } from '../../core/db';
 import { ReceiptScanner, MODAL_RECEIPT_SCANNER } from '../ocr/ReceiptScanner';
 import { QrScanner, MODAL_QR_SCANNER } from '../ocr/QrScanner';
 import { AccountSelector } from '../accounts/AccountSelector';
+import { StoreSelector } from '../stores/StoreSelector';
 import { LucideIcon } from '../../components/LucideIcon';
+import type { IReceiptPosition } from '../ocr/geminiService';
 
 
 export const MODAL_ADD_EXPENSE = 'add-expense';
@@ -42,7 +44,7 @@ interface IAddExpenseModalProps {
 
 /**
  * Add Expense Modal — glassmorphism modal with category grid, account selector,
- * date picker, and OCR/QR entry points.
+ * date picker, store name, and OCR/QR entry points.
  */
 export function AddExpenseModal({ onAdded }: IAddExpenseModalProps) {
   const { user, familyId } = useAuthStore();
@@ -51,8 +53,10 @@ export function AddExpenseModal({ onAdded }: IAddExpenseModalProps) {
 
   const categories = useLiveQuery(() => familyId ? getCategories(familyId) : [], [familyId]) || [];
   const accounts = useLiveQuery(() => familyId ? getAccounts(familyId) : [], [familyId]) || [];
+  const stores = useLiveQuery(() => familyId ? getStores(familyId) : [], [familyId]) || [];
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
+  const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const {
@@ -80,8 +84,14 @@ export function AddExpenseModal({ onAdded }: IAddExpenseModalProps) {
     if (isOpen) {
       reset({ spentAt: new Date().toISOString().slice(0, 16) });
       setSelectedCategory(null);
+      setSelectedStore(null);
     }
   }, [isOpen, reset]);
+
+  /** Build the full description string from form data */
+  const buildDescription = (data: ExpenseFormData): string => {
+    return data.description || '';
+  };
 
   const onSubmit = async (data: ExpenseFormData) => {
     if (!familyId || !user) return;
@@ -94,7 +104,8 @@ export function AddExpenseModal({ onAdded }: IAddExpenseModalProps) {
         amount: Number(data.amount.replace(',', '.')),
         categoryId: selectedCategory,
         accountId: selectedAccount,
-        description: data.description ?? '',
+        storeId: selectedStore,
+        description: buildDescription(data),
         spentAt: new Date(data.spentAt).toISOString(),
       });
 
@@ -108,7 +119,87 @@ export function AddExpenseModal({ onAdded }: IAddExpenseModalProps) {
     }
   };
 
-  /** Called from OCR/QR scanner to auto-fill amount */
+  /**
+   * Batch-add all receipt positions as separate expenses in one atomic operation.
+   */
+  const handlePositionsConfirmed = useCallback(async (positions: IReceiptPosition[]) => {
+    if (!familyId || !user || positions.length === 0) return;
+
+    try {
+      // 1. Refresh categories and stores to avoid stale state
+      const currentCategories = await getCategories(familyId);
+      const currentStores = await getStores(familyId);
+
+      const paramsList = [];
+      
+      for (const pos of positions) {
+        let posCategoryId = selectedCategory;
+        let posStoreId: string | null = null;
+
+        // Auto-match or auto-create store
+        if (pos.storeName) {
+          const storeNameLower = pos.storeName.toLowerCase().trim();
+          let storeMatch: IStore | undefined | null = currentStores.find(s => s.name.toLowerCase() === storeNameLower);
+          
+          if (!storeMatch) {
+            // Create a new store on the fly
+            storeMatch = await addStore(familyId, pos.storeName.trim());
+            if (storeMatch) {
+               currentStores.push(storeMatch);
+            }
+          }
+          if (storeMatch) {
+             posStoreId = storeMatch.id;
+          }
+        }
+
+        // Auto-match or auto-create category
+        if (pos.categorySuggestion) {
+          const catNameLower = pos.categorySuggestion.toLowerCase().trim();
+          let catMatch = currentCategories.find(c => c.name.toLowerCase() === catNameLower);
+          
+          if (!catMatch) {
+            // Create a new category on the fly (using a default icon)
+            const newCat = await addCategory(familyId, pos.categorySuggestion.trim(), 'Tag', '#94a3b8');
+            // Re-fetch to get the IDs of the newly created category
+            const updatedCategories = await getCategories(familyId);
+            catMatch = updatedCategories.find(c => c.name.toLowerCase() === catNameLower);
+            if (catMatch) {
+              currentCategories.push(catMatch);
+            }
+          }
+          if (catMatch) {
+            posCategoryId = catMatch.id;
+          }
+        }
+
+        const descParts: string[] = [];
+        descParts.push(pos.name);
+        if (pos.details) descParts.push(`(${pos.details})`);
+
+        paramsList.push({
+          familyId,
+          userId: user.id,
+          amount: pos.amount,
+          categoryId: posCategoryId,
+          accountId: selectedAccount,
+          storeId: posStoreId,
+          description: descParts.join(' '),
+          spentAt: pos.spentAt,
+        });
+      }
+
+      await addBatchExpenses(paramsList);
+
+      toast.success(`${positions.length} expense${positions.length > 1 ? 's' : ''} added from receipt`);
+      closeModal();
+      onAdded?.();
+    } catch {
+      toast.error('Error adding expenses from receipt');
+    }
+  }, [familyId, user, selectedCategory, selectedAccount, closeModal, onAdded]);
+
+  /** Called from QR scanner to auto-fill amount */
   const handleAmountDetected = useCallback((amount: number) => {
     setValue('amount', amount.toString());
     toast.success(`Amount recognized: ${amount}`);
@@ -148,7 +239,7 @@ export function AddExpenseModal({ onAdded }: IAddExpenseModalProps) {
             type="button"
             className="flex-1 glass py-4 rounded-2xl flex items-center justify-center gap-2 group active:scale-95 transition-all"
             onClick={() => {
-              openModal(MODAL_RECEIPT_SCANNER, { onAmountDetected: handleAmountDetected });
+              openModal(MODAL_RECEIPT_SCANNER);
             }}
           >
             <Camera className="w-5 h-5 text-surface-400 group-hover:text-brand-primary transition-colors" />
@@ -223,6 +314,24 @@ export function AddExpenseModal({ onAdded }: IAddExpenseModalProps) {
             />
           </div>
 
+          {/* Store Name */}
+          <div className="space-y-2">
+            <label className="block text-[10px] font-black text-surface-500 uppercase tracking-widest pl-1">
+              Store
+            </label>
+            <StoreSelector 
+              stores={stores}
+              selectedId={selectedStore}
+              onSelect={setSelectedStore}
+              onAddCustom={async (name) => {
+                if (familyId) {
+                   const newStore = await addStore(familyId, name);
+                   if (newStore) setSelectedStore(newStore.id);
+                }
+              }}
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label htmlFor="expense-desc" className="block text-[10px] font-black text-surface-500 uppercase tracking-widest pl-1">
@@ -272,7 +381,11 @@ export function AddExpenseModal({ onAdded }: IAddExpenseModalProps) {
 
 
       {/* Nested Scanner Modals */}
-      <ReceiptScanner onAmountDetected={handleAmountDetected} />
+      <ReceiptScanner 
+        onPositionsConfirmed={handlePositionsConfirmed}
+        existingCategoryNames={categories.map(c => c.name)}
+        existingStoreNames={stores.map(s => s.name)}
+      />
       <QrScanner onAmountDetected={handleAmountDetected} />
     </PortalModal>
   );

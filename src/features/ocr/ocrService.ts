@@ -1,11 +1,47 @@
 import Tesseract from 'tesseract.js';
+import { analyzeReceiptWithGemini, type IReceiptPosition } from './geminiService';
 
 export interface OcrResult {
   rawText: string;
   detectedAmount: number | null;
   confidence: number; // 0.0 to 1.0
   candidates: number[]; // Alternative amounts if confidence is low
+  positions?: IReceiptPosition[]; // New field for Gemini positions
 }
+
+/**
+ * Uses Gemini AI to analyze a receipt.
+ */
+export async function processReceiptWithGemini(
+  file: File,
+  existingCategoryNames: string[] = [],
+  existingStoreNames: string[] = []
+): Promise<OcrResult> {
+  try {
+    const positions = await analyzeReceiptWithGemini(file, existingCategoryNames, existingStoreNames);
+    
+    // Total is usually the last one or the largest one.
+    // For now, let's just return the first one as the default, but include all positions.
+    const total = positions.length > 0 ? positions[0].amount : null;
+
+    return {
+      rawText: JSON.stringify(positions),
+      detectedAmount: total,
+      confidence: 0.95, // Gemini is usually very high confidence
+      candidates: positions.map(p => p.amount),
+      positions: positions
+    };
+  } catch (error) {
+    console.error('[OCR-Gemini] Error:', error);
+    return {
+      rawText: '',
+      detectedAmount: null,
+      confidence: 0,
+      candidates: []
+    };
+  }
+}
+// ... existing code ...
 
 /**
  * Advanced Receipt OCR Service using Tesseract.js

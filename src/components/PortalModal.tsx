@@ -35,30 +35,23 @@ export function PortalModal({ modalId, title, children, className, size = 'md' }
   useEffect(() => {
     if (!isOpen) return;
 
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeModal();
-    };
-    document.addEventListener('keydown', handleEsc);
     document.body.style.overflow = 'hidden';
 
     return () => {
-      document.removeEventListener('keydown', handleEsc);
       if (stack.length <= 1) {
         document.body.style.overflow = '';
       }
     };
-  }, [isOpen, closeModal, stack.length]);
+  }, [isOpen, stack.length]);
 
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === overlayRef.current) closeModal();
-  };
+
 
   if (!isOpen) return null;
 
   return createPortal(
     <div
       ref={overlayRef}
-      onClick={handleOverlayClick}
+
       className="fixed inset-0 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 animate-fade-in"
       style={{ zIndex, backgroundColor: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(8px)' }}
       role="dialog"

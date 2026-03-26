@@ -30,6 +30,13 @@ export interface ICategory {
   sortOrder: number;
 }
 
+// ─── Store ──────────────────────────────────────────────
+export interface IStore {
+  id: string;
+  familyId: string;
+  name: string;
+}
+
 // ─── Account (spending source) ──────────────────────────
 export type AccountType = 'card' | 'cash' | 'bank' | 'savings' | 'credit';
 
@@ -52,6 +59,7 @@ export interface IExpense {
   amount: number;
   categoryId: string | null;
   accountId: string | null;
+  storeId: string | null;
   description: string;
   spentAt: string;
   createdAt: string;
@@ -91,6 +99,7 @@ export interface IExpenseRow {
   amount: number;
   category_id: string | null;
   account_id: string | null;
+  store_id: string | null;
   description: string;
   spent_at: string;
   created_at: string;
@@ -115,6 +124,14 @@ export interface ICategoryRow {
   sort_order: number;
 }
 
+/** Raw Supabase row for stores table */
+export interface IStoreRow {
+  id: string;
+  family_id: string;
+  name: string;
+  created_at: string;
+}
+
 /** Raw Supabase row for accounts table */
 export interface IAccountRow {
   id: string;
@@ -135,6 +152,7 @@ export function mapExpenseFromRow(row: IExpenseRow): IExpense {
     amount: Number(row.amount),
     categoryId: row.category_id,
     accountId: row.account_id,
+    storeId: row.store_id,
     description: row.description ?? '',
     spentAt: row.spent_at,
     createdAt: row.created_at,
@@ -150,6 +168,7 @@ export function mapExpenseToRow(expense: IExpense): Omit<IExpenseRow, 'created_a
     amount: expense.amount,
     category_id: expense.categoryId,
     account_id: expense.accountId,
+    store_id: expense.storeId,
     description: expense.description,
     spent_at: expense.spentAt,
   };
@@ -173,6 +192,14 @@ export function mapCategoryFromRow(row: ICategoryRow): ICategory {
     icon: row.icon,
     color: row.color,
     sortOrder: row.sort_order,
+  };
+}
+
+export function mapStoreFromRow(row: IStoreRow): IStore {
+  return {
+    id: row.id,
+    familyId: row.family_id,
+    name: row.name,
   };
 }
 

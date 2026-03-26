@@ -3,6 +3,7 @@ import { create } from 'zustand'
 interface IModal {
   id: string
   props?: Record<string, unknown>
+  payload?: Record<string, unknown>; // Data passed to the modal
 }
 
 interface IModalStore {
