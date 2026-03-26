@@ -16,6 +16,7 @@ import type { ICategory, IAccount } from '../../core/types';
 import { cn } from '../../core/cn';
 import { toast } from 'sonner';
 import { useModalStore } from '../../core/useModalStore';
+import { formatCurrency } from '../../core/formatters';
 
 const MODAL_ADD_EXPENSE = 'add-expense';
 
@@ -122,11 +123,7 @@ export function ExpenseList() {
         </p>
         <div className="flex items-baseline gap-2">
           <span className="text-5xl font-black text-surface-50 tracking-tighter drop-shadow-glow">
-            {new Intl.NumberFormat('ru-RU', {
-              style: 'currency',
-              currency: 'EUR',
-              maximumFractionDigits: 0,
-            }).format(totalMonth)}
+            {formatCurrency(totalMonth)}
           </span>
         </div>
         <div className="flex items-center gap-2 text-success font-black text-xs">
@@ -194,10 +191,7 @@ export function ExpenseList() {
                 </p>
               </div>
               <p className="text-[10px] font-black text-brand-primary/60 uppercase">
-                {new Intl.NumberFormat('en-US', {
-                  maximumFractionDigits: 0,
-                }).format((dayExpenses ?? []).reduce((s, e) => s + e.amount, 0))}
-                <span className="ml-0.5">€</span>
+                {formatCurrency((dayExpenses ?? []).reduce((s, e) => s + e.amount, 0))}
               </p>
             </div>
             <div className="space-y-2">

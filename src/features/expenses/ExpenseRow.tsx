@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import type { IExpense, ICategory, IAccount } from '../../core/types';
 import { cn } from '../../core/cn';
 import { LucideIcon } from '../../components/LucideIcon';
+import { formatCurrency } from '../../core/formatters';
 
 interface IExpenseRowProps {
   expense: IExpense;
@@ -68,11 +69,7 @@ export const ExpenseRow = memo(function ExpenseRow({
       {/* Amount + Time */}
       <div className="text-right shrink-0 pr-2">
         <div className="text-lg font-black text-surface-50 tracking-tighter mb-0.5">
-          {new Intl.NumberFormat('ru-RU', {
-            style: 'currency',
-            currency: 'EUR',
-            maximumFractionDigits: 0,
-          }).format(expense.amount)}
+          {formatCurrency(expense.amount)}
         </div>
         <p className="text-[10px] font-black text-surface-600 uppercase tracking-widest leading-none">
           {format(new Date(expense.spentAt), 'HH:mm', { locale: ru })}

@@ -19,6 +19,7 @@ import {
 import { cn } from '../../core/cn';
 import { ChartSkeleton } from '../../components/Skeleton';
 import { LucideIcon } from '../../components/LucideIcon';
+import { formatCurrency, formatNumber } from '../../core/formatters';
 
 type TabKey = 'categories' | 'periods' | 'accounts';
 
@@ -155,7 +156,7 @@ export function AnalyticsDashboard() {
                               <div className="glass-card p-3 text-sm border-white/10">
                                 <p className="font-black text-surface-50 uppercase tracking-widest text-[10px] mb-1">{d.categoryName}</p>
                                 <p className="text-surface-400 font-bold">
-                                  {new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(d.amount)}
+                                  {formatCurrency(d.amount)}
                                   {' · '}{d.percentage}%
                                 </p>
                               </div>
@@ -171,7 +172,7 @@ export function AnalyticsDashboard() {
                         <p className="text-[10px] font-black text-surface-500 uppercase tracking-widest mb-1">Total</p>
                         <div className="flex items-baseline justify-center gap-0.5">
                           <span className="text-2xl font-black text-surface-50 -tracking-tight">
-                            {new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(catData.total)}
+                            {formatNumber(catData.total)}
                           </span>
                           <span className="text-sm font-bold text-brand-primary/60">€</span>
                         </div>
@@ -189,7 +190,7 @@ export function AnalyticsDashboard() {
                         <div className="flex-1 min-w-0">
                           <p className="text-[10px] font-black text-surface-500 uppercase tracking-widest leading-none mb-1">{item.categoryName}</p>
                           <div className="flex items-baseline gap-1">
-                            <span className="text-sm font-black text-surface-100">{new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(item.amount)}</span>
+                            <span className="text-sm font-black text-surface-100">{formatNumber(item.amount)}</span>
                             <span className="text-[10px] font-bold text-surface-500">€</span>
                           </div>
                         </div>
@@ -238,7 +239,7 @@ export function AnalyticsDashboard() {
                             <div className="glass-card p-3 text-sm border-white/10">
                               <p className="font-black text-surface-50 uppercase tracking-widest text-[10px] mb-1">{d.monthLabel}</p>
                               <p className="text-surface-400 font-bold">
-                                {new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(d.total)}
+                                {formatCurrency(d.total)}
                               </p>
                             </div>
                           );
@@ -269,7 +270,7 @@ export function AnalyticsDashboard() {
                        </div>
                        <div className="flex items-baseline gap-1">
                          <span className="text-sm font-black text-surface-100">
-                           {new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(item.amount)}
+                           {formatNumber(item.amount)}
                          </span>
                          <span className="text-[10px] font-bold text-surface-500">€</span>
                        </div>

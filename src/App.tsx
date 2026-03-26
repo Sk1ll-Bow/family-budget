@@ -11,11 +11,14 @@ import { RegisterPage } from './features/auth/RegisterPage';
 import { VerifyOtpPage } from './features/auth/VerifyOtpPage';
 import { FamilySetup } from './features/family/FamilySetup';
 import { ExpenseList } from './features/expenses/ExpenseList';
+import { DesktopDashboard } from './features/expenses/DesktopDashboard';
 import { AddExpenseModal } from './features/expenses/AddExpenseModal';
 import { AnalyticsDashboard } from './features/analytics/AnalyticsDashboard';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { FamilyManagementPage } from './features/family/FamilyManagementPage';
 import { BottomNav } from './components/BottomNav';
+import { Sidebar } from './components/Sidebar';
+import { cn } from './core/cn';
 
 /**
  * Main application shell with routing, auth guards, and sync initialization.
@@ -119,7 +122,14 @@ function AppShell() {
         <Route path="/" element={
           <RequireFamily>
             <MainLayout>
-              <ExpenseList />
+              {/* Mobile View */}
+              <div className="xl:hidden">
+                <ExpenseList />
+              </div>
+              {/* Desktop View */}
+              <div className="hidden xl:block">
+                <DesktopDashboard />
+              </div>
             </MainLayout>
           </RequireFamily>
         } />
@@ -180,30 +190,47 @@ function RequireFamily({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-/** Main layout wrapper with bottom nav and add expense modal */
+/** Main layout wrapper with sidebar (desktop), bottom nav (mobile) and add expense modal */
 function MainLayout({ children }: { children: ReactNode }) {
+  const { user } = useAuthStore();
+
   return (
-    <div className="w-full max-w-lg mx-auto min-h-dvh relative bg-surface-950 overflow-hidden">
-      {/* Ambient background */}
-      <div className="ambient-bg" />
-      <div className="spotlight" />
+    <div className="w-full min-h-dvh relative bg-surface-950 overflow-hidden flex">
+      {/* Sidebar - Only for logged-in users on large screens */}
+      {user && (
+        <div className="hidden xl:block">
+          <Sidebar />
+        </div>
+      )}
 
-      {/* Page content with transition */}
-      <motion.main 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 px-4 pt-4 pb-32 safe-top"
-      >
-        {children}
-      </motion.main>
+      <div className="flex-1 flex flex-col relative min-w-0">
+        {/* Ambient background */}
+        <div className="ambient-bg" />
+        <div className="spotlight" />
 
-      {/* Global modals */}
-      <AddExpenseModal />
+        {/* Page content with transition */}
+        <motion.main 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className={cn(
+            "relative z-10 w-full pb-32 safe-top",
+            // Mobile: max-w-lg and center
+            "max-w-lg mx-auto px-4 pt-4",
+            // Desktop (xl and above): remove max-width, adjust padding for sidebar
+            "xl:max-w-none xl:mx-0 xl:px-12 xl:pt-10 xl:pl-[calc(5rem+3rem)] 2xl:pl-[calc(16rem+4rem)]"
+          )}
+        >
+          {children}
+        </motion.main>
 
-      {/* Bottom navigation */}
-      <BottomNav />
+        {/* Global modals */}
+        <AddExpenseModal />
+
+        {/* Bottom navigation - Mobile only (xl:hidden) */}
+        <BottomNav />
+      </div>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../core/cn';
 import type { IAccount, AccountType } from '../../core/types';
+import { formatCurrency } from '../../core/formatters';
 
 interface IAccountCardProps {
   account: IAccount;
@@ -45,11 +46,7 @@ export const AccountCard = memo(({
   const colorClasses = COLOR_MAP[account.color] || COLOR_MAP.blue;
 
   const formattedAmount = useMemo(() => {
-    return new Intl.NumberFormat('ru-RU', {
-      style: 'currency',
-      currency: 'EUR',
-      maximumFractionDigits: 0,
-    }).format(spentAmount);
+    return formatCurrency(spentAmount);
   }, [spentAmount]);
 
   return (

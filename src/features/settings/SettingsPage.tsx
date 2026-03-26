@@ -21,8 +21,7 @@ import { db } from '../../core/db';
 export function SettingsPage() {
   const navigate = useNavigate();
   const { user, profile, familyId, logout, updateProfile, exitFamily } = useAuthStore();
-  const [familyName, setFamilyName] = useState('');
-  const [inviteCode, setInviteCode] = useState('');
+
   const categories = useLiveQuery(
     () => familyId ? getCategories(familyId) : [],
     [familyId]
@@ -62,22 +61,7 @@ export function SettingsPage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!familyId) return;
-    const load = async () => {
-      // Family info
-      const { data: fam } = await supabase
-        .from('families')
-        .select('name, invite_code')
-        .eq('id', familyId)
-        .maybeSingle();
-      if (fam) {
-        setFamilyName(fam.name as string);
-        setInviteCode(fam.invite_code as string);
-      }
-    };
-    load();
-  }, [familyId]);
+
 
   const handleUpdateProfile = async () => {
     if (!editName.trim()) return;
@@ -105,11 +89,7 @@ export function SettingsPage() {
     }
   };
 
-  const handleCopyCode = async () => {
-    await navigator.clipboard.writeText(inviteCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+
 
   const handleAddCategory = async () => {
     if (!newCatName.trim() || !familyId) return;
@@ -208,40 +188,7 @@ export function SettingsPage() {
         </div>
       </div>
 
-      {/* Family & Invite Code */}
-      <div className="glass p-8 rounded-[32px] space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 flex items-center justify-center">
-              <Users className="w-6 h-6 text-brand-primary" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-surface-600 uppercase tracking-[0.2em] leading-none mb-2">My Family</p>
-              <h3 className="text-xl font-black text-surface-50 tracking-tight">{familyName || 'Family Space'}</h3>
-            </div>
-          </div>
-        </div>
 
-        <div className="space-y-3">
-          <p className="text-[10px] font-black text-surface-500 uppercase tracking-[0.2em] px-1 text-center">Invite Members</p>
-          <div className="flex items-center gap-3">
-            <div className="bg-surface-900/50 flex-1 px-6 py-4 text-2xl font-black tracking-[0.4em] text-brand-primary rounded-[20px] border border-white/5 shadow-inner select-all text-center">
-              {inviteCode.toUpperCase()}
-            </div>
-            <button
-              type="button"
-              onClick={handleCopyCode}
-              className={cn(
-                "w-14 h-14 rounded-[20px] flex items-center justify-center transition-all active:scale-90 shadow-2xl",
-                copied ? "bg-success text-white shadow-success/20" : "bg-brand-primary text-white shadow-brand-primary/30"
-              )}
-            >
-              {copied ? <Check className="w-6 h-6" /> : <Copy className="w-6 h-6" />}
-            </button>
-          </div>
-          <p className="text-[10px] font-bold text-surface-600 px-1 text-center opacity-70">Tap the code to copy and share with your family members.</p>
-        </div>
-      </div>
 
       {/* Categories */}
       <div className="glass p-8 rounded-[32px] space-y-6">

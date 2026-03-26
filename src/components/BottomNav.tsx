@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, PlusCircle, BarChart3, Settings, Users } from 'lucide-react';
+import { Home, Plus, BarChart3, Settings, Users } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { cn } from '../core/cn';
 import { useModalStore } from '../core/useModalStore';
 
@@ -27,7 +28,7 @@ export function BottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[calc(100%-2.5rem)] max-w-lg z-50 pointer-events-none">
+    <div className="fixed bottom-8 inset-x-0 mx-auto px-5 w-full max-w-lg z-50 pointer-events-none xl:hidden">
       <nav className="glass border border-white/10 shadow-card rounded-[32px] flex items-center justify-between px-2 py-3 pointer-events-auto relative overflow-hidden h-20">
         {/* Subtle inner glow */}
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
@@ -61,24 +62,40 @@ export function BottomNav() {
           ))}
         </div>
 
-        {/* Central FAB */}
-        <div className="relative -mt-10 px-2">
+        {/* Reimagined Hero FAB */}
+        <div className="relative -mt-6 px-2 pb-2">
+          {/* External Glow Layer */}
+          <div className="absolute inset-0 bg-brand-primary/20 blur-[32px] rounded-full scale-110 animate-pulse" />
+          
           <button
             type="button"
             onClick={() => openModal(MODAL_ADD_EXPENSE)}
             className={cn(
-              'relative w-16 h-16 rounded-[24px]',
-              'bg-brand-primary',
+              'relative w-18 h-18 rounded-[28px]', // Slightly larger, more squircle
+              'bg-brand-primary overflow-hidden',
               'flex items-center justify-center',
-              'shadow-[0_8px_32px_rgba(59,130,246,0.5)]',
+              'shadow-[0_12px_48px_rgba(59,130,246,0.6),inset_0_2px_4px_rgba(255,255,255,0.3)]',
               'transition-all duration-500 cursor-pointer active:scale-90',
-              'hover:-translate-y-1 hover:shadow-[0_12px_44px_rgba(59,130,246,0.7)]',
+              'hover:-translate-y-2 hover:shadow-[0_16px_56px_rgba(59,130,246,0.8)]',
               'group'
             )}
-            aria-label="Add expense"
+            aria-label="Add transaction"
           >
-            <div className="absolute inset-0 rounded-[24px] bg-gradient-to-tr from-black/20 to-white/20" />
-            <PlusCircle className="w-8 h-8 text-white relative z-10 group-hover:rotate-90 transition-transform duration-500" />
+            {/* Shimmer Effect */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-black/10 via-white/5 to-white/20" />
+            <div className="absolute inset-3 rounded-[20px] border border-white/20 pointer-events-none" />
+            
+            <motion.div
+              initial={false}
+              animate={{ rotate: 0 }}
+              whileHover={{ rotate: 90 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <Plus className="w-8 h-8 text-white relative z-10 drop-shadow-md" />
+            </motion.div>
+
+            {/* Micro-shimmer sweep animation */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-[200%] group-hover:translate-x-[200%] transition-transform duration-1000 ease-in-out" />
           </button>
         </div>
 
