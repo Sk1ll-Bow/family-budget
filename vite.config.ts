@@ -11,6 +11,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['vite.svg'],
+      workbox: {
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB
+      },
       manifest: {
         name: 'Family Expense Tracker',
         short_name: 'Семейный Бюджет',
