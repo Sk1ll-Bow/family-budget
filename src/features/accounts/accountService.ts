@@ -55,6 +55,20 @@ export async function getAccountSpentAmount(accountId: string): Promise<number> 
   return accountExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 }
 
+/** Update an account's name, color, type and icon. */
+export async function updateAccount(
+  id: string,
+  name: string,
+  color: string,
+  type: AccountType,
+  icon?: string
+): Promise<void> {
+  const patch: Record<string, unknown> = { name, color, type };
+  if (icon) patch.icon = icon;
+  await db.accounts.update(id, patch);
+  await supabase.from('accounts').update(patch).eq('id', id);
+}
+
 /** Delete an account. */
 export async function deleteAccount(id: string): Promise<void> {
   await db.accounts.delete(id);

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Fragment } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { format, startOfMonth, endOfMonth, subMonths, eachDayOfInterval, isSameDay } from 'date-fns';
 import { 
@@ -11,7 +11,11 @@ import {
   Plus,
   Filter,
   Download,
-  Trash2
+  Trash2,
+  ReceiptText,
+  ChevronDown,
+  Check,
+  X
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -25,14 +29,14 @@ import {
   Bar,
   Cell
 } from 'recharts';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../core/db';
 import { useAuthStore } from '../../core/useAuthStore';
 import { cn } from '../../core/cn';
 import { useModalStore } from '../../core/useModalStore';
 import { ExpenseRow } from './ExpenseRow';
 import { formatCurrency, formatNumber } from '../../core/formatters';
-import { deleteExpense } from './expenseService';
+import { deleteExpense, deleteBatchExpenses } from './expenseService';
 import { MODAL_EDIT_EXPENSE } from './EditExpenseModal';
 import { toast } from 'sonner';
 import type { IExpense } from '../../core/types';
@@ -47,6 +51,11 @@ export function DesktopDashboard() {
   const { familyId, profile } = useAuthStore();
   const { openModal } = useModalStore();
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAll, setShowAll] = useState(false);
+  const [expandedReceipts, setExpandedReceipts] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isDeletingBulk, setIsDeletingBulk] = useState(false);
 
   // ─── DATA FETCHING ───
 
@@ -76,9 +85,65 @@ export function DesktopDashboard() {
 
   // ─── COMPUTATIONS ───
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, confirmed = false) => {
+    if (!confirmed) {
+      setDeletingId(id);
+      setTimeout(() => setDeletingId(null), 3000); // Reset after 3 seconds
+      return;
+    }
     await deleteExpense(id);
+    setDeletingId(null);
     toast.success('Transaction deleted');
+  };
+
+  const handleBulkDelete = async (confirmed = false) => {
+    if (selectedIds.size === 0) return;
+    if (!confirmed) {
+      setIsDeletingBulk(true);
+      setTimeout(() => setIsDeletingBulk(false), 4000);
+      return;
+    }
+    await deleteBatchExpenses(Array.from(selectedIds));
+    setSelectedIds(new Set());
+    setIsDeletingBulk(false);
+    toast.success(`${selectedIds.size} transactions deleted`);
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    const allVisibleIds = new Set<string>();
+    processedRows.forEach(row => {
+      if (row.type === 'single') allVisibleIds.add(row.expense.id);
+      else row.visibleExpenses.forEach((e: any) => allVisibleIds.add(e.id));
+    });
+
+    if (selectedIds.size === allVisibleIds.size) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(allVisibleIds);
+    }
+  };
+
+  const toggleSelectGroup = (expenses: IExpense[]) => {
+    const ids = expenses.map(e => e.id);
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      const allSelected = ids.every(id => next.has(id));
+      if (allSelected) {
+        ids.forEach(id => next.delete(id));
+      } else {
+        ids.forEach(id => next.add(id));
+      }
+      return next;
+    });
   };
 
   const handleEdit = (expense: IExpense) => {
@@ -142,16 +207,95 @@ export function DesktopDashboard() {
       .slice(0, 5);
   }, [currentMonthExpenses, categories, totalCurrent]);
 
-  const recentExpenses = useMemo(() => 
-    (expenses ?? [])
-      .sort((a, b) => new Date(b.spentAt).getTime() - new Date(a.spentAt).getTime())
-      .slice(0, 8),
-    [expenses]
-  );
+  const categoryMap = useMemo(() => new Map((categories ?? []).map((c) => [c.id, c])), [categories]);
+  const accountMap = useMemo(() => new Map((accounts ?? []).map((a) => [a.id, a])), [accounts]);
+  const storeMap = useMemo(() => new Map((stores ?? []).map((s) => [s.id, s])), [stores]);
 
-  const categoryMap = new Map((categories ?? []).map((c) => [c.id, c]));
-  const accountMap = new Map((accounts ?? []).map((a) => [a.id, a]));
-  const storeMap = new Map((stores ?? []).map((s) => [s.id, s]));
+  const displayedExpenses = useMemo(() => {
+    let filtered = (expenses ?? []);
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(e => 
+        e.description?.toLowerCase().includes(q) ||
+        categoryMap.get(e.categoryId || '')?.name.toLowerCase().includes(q) ||
+        storeMap.get(e.storeId || '')?.name.toLowerCase().includes(q)
+      );
+    }
+
+    // Sort by date descending
+    const sorted = filtered.sort((a, b) => new Date(b.spentAt).getTime() - new Date(a.spentAt).getTime());
+    
+    // Slice if not showing all
+    return showAll ? sorted : sorted.slice(0, 8);
+  }, [expenses, showAll, searchQuery, categoryMap, storeMap]);
+
+  const toggleReceipt = (receiptId: string) => {
+    setExpandedReceipts(prev => {
+      const next = new Set(prev);
+      if (next.has(receiptId)) next.delete(receiptId);
+      else next.add(receiptId);
+      return next;
+    });
+  };
+
+  const processedRows = useMemo(() => {
+    const result: any[] = [];
+    const grouped: Record<string, IExpense[]> = {};
+    
+    // Pre-calculate full totals and counts for groups from the entire expense list
+    const groupFullData: Record<string, { total: number, count: number, expenses: IExpense[] }> = {};
+    (expenses ?? []).forEach(e => {
+      if (e.receiptId) {
+        if (!groupFullData[e.receiptId]) groupFullData[e.receiptId] = { total: 0, count: 0, expenses: [] };
+        groupFullData[e.receiptId].total += e.amount;
+        groupFullData[e.receiptId].count += 1;
+        groupFullData[e.receiptId].expenses.push(e);
+      }
+    });
+
+    // 1. Group by receiptId based on DISPLAYED expenses
+    displayedExpenses.forEach(e => {
+      if (e.receiptId) {
+        if (!grouped[e.receiptId]) grouped[e.receiptId] = [];
+        grouped[e.receiptId].push(e);
+      } else {
+        result.push({ type: 'single', expense: e });
+      }
+    });
+
+    // 2. Add groups to result
+    Object.entries(grouped).forEach(([receiptId, items]) => {
+      const fullData = groupFullData[receiptId];
+      // If any item of a group matches the filter, we show the group row
+      // We show either the group UI if there are multiple items in the FULL group,
+      // or just a single row if the group actually only has one item.
+      if (fullData && fullData.count > 1) {
+        result.push({ 
+          type: 'group', 
+          receiptId, 
+          visibleExpenses: items, // Items matching the filter
+          allExpenses: fullData.expenses, // All items for editing/expanding if needed
+          storeId: items[0].storeId,
+          accountId: items[0].accountId,
+          spentAt: items[0].spentAt,
+          totalAmount: fullData.total, // Use the FULL total
+          fullCount: fullData.count
+        });
+      } else {
+        // If it's effectively a single item (or fullData missing which shouldn't happen)
+        result.push({ type: 'single', expense: items[0] });
+      }
+    });
+
+    // 3. Sort final rows by date descending
+    return result.sort((a, b) => {
+      const dateA = a.type === 'single' ? a.expense.spentAt : a.spentAt;
+      const dateB = b.type === 'single' ? b.expense.spentAt : b.spentAt;
+      return new Date(dateB).getTime() - new Date(dateA).getTime();
+    });
+  }, [displayedExpenses, expenses]);
 
   return (
     <div className="space-y-8">
@@ -338,9 +482,14 @@ export function DesktopDashboard() {
       {/* ─── RECENT TRANSACTIONS TABLE ─── */}
       <div className="glass-card p-0 overflow-hidden">
         <div className="p-6 flex items-center justify-between border-b border-white/5">
-          <h2 className="text-xl font-black text-surface-50 tracking-tight">Recent Transactions</h2>
-          <button className="text-brand-primary text-xs font-black uppercase tracking-widest hover:underline transition-all">
-            See All Transactions
+          <h2 className="text-xl font-black text-surface-50 tracking-tight">
+            {showAll ? 'All Transactions' : 'Recent Transactions'}
+          </h2>
+          <button 
+            onClick={() => setShowAll(!showAll)}
+            className="text-brand-primary text-xs font-black uppercase tracking-widest hover:underline transition-all"
+          >
+            {showAll ? 'Show Recent' : 'See All Transactions'}
           </button>
         </div>
 
@@ -348,6 +497,19 @@ export function DesktopDashboard() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-white/2">
+                <th className="px-6 py-4 w-10">
+                   <button 
+                    onClick={toggleSelectAll}
+                    className={cn(
+                      "w-5 h-5 rounded border-2 transition-all flex items-center justify-center",
+                      selectedIds.size > 0 && selectedIds.size === processedRows.reduce((acc, r) => acc + (r.type === 'single' ? 1 : r.visibleExpenses.length), 0)
+                        ? "bg-brand-primary border-brand-primary" 
+                        : "border-white/20 hover:border-brand-primary"
+                    )}
+                   >
+                     {selectedIds.size > 0 && <Check className="w-3 h-3 text-white" />}
+                   </button>
+                </th>
                 <th className="px-6 py-4 text-[10px] font-black text-surface-500 uppercase tracking-widest">Transaction</th>
                 <th className="px-6 py-4 text-[10px] font-black text-surface-500 uppercase tracking-widest">Category</th>
                 <th className="px-6 py-4 text-[10px] font-black text-surface-500 uppercase tracking-widest">Account</th>
@@ -357,13 +519,155 @@ export function DesktopDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {recentExpenses.map((expense) => {
+              {processedRows.map((row) => {
+                if (row.type === 'group') {
+                  const account = accountMap.get(row.accountId || '');
+                  const store = storeMap.get(row.storeId || '');
+                  const isExpanded = expandedReceipts.has(row.receiptId);
+                  
+                  return (
+                    <Fragment key={row.receiptId}>
+                      <tr 
+                        className="hover:bg-white/5 transition-colors cursor-pointer group/grouprow"
+                        onClick={() => toggleReceipt(row.receiptId)}
+                      >
+                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                           <button 
+                            onClick={() => toggleSelectGroup(row.allExpenses)}
+                            className={cn(
+                              "w-5 h-5 rounded border-2 transition-all flex items-center justify-center",
+                              row.allExpenses.every((e: any) => selectedIds.has(e.id)) 
+                                ? "bg-brand-primary border-brand-primary text-white" 
+                                : "border-white/20 hover:border-brand-primary"
+                            )}
+                           >
+                             {row.allExpenses.some((e: any) => selectedIds.has(e.id)) && (
+                               <div className={cn("w-1.5 h-1.5 bg-current rounded-full", row.allExpenses.every((e: any) => selectedIds.has(e.id)) ? "hidden" : "block")} />
+                             )}
+                             {row.allExpenses.every((e: any) => selectedIds.has(e.id)) && <Check className="w-3 h-3" />}
+                           </button>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-brand-primary/20 flex items-center justify-center font-bold text-brand-primary group-hover/grouprow:scale-110 transition-transform relative">
+                               <ReceiptText className="w-4 h-4" />
+                               <span className="absolute -top-1 -right-1 bg-brand-primary text-white text-[8px] px-1 rounded-full">{row.fullCount}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-bold text-surface-50">
+                                {`${store?.name || 'Unknown Store'}, ${format(new Date(row.spentAt), 'dd.MM.yyyy')}, ${format(new Date(row.spentAt), 'HH:mm')}`}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-brand-primary/10 text-brand-primary">
+                            {row.visibleExpenses.length === row.fullCount ? 'Full Receipt' : `Showing ${row.visibleExpenses.length} of ${row.fullCount}`}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-[10px] font-black text-surface-500 uppercase tracking-widest">{account?.name || 'Unknown'}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-xs font-medium text-surface-500">{format(new Date(row.spentAt), 'MMM dd, yyyy')}</span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <span className="text-sm font-black text-surface-50">-{formatNumber(row.totalAmount)} €</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-end gap-2">
+                             <div className={cn("w-8 h-8 rounded-lg glass flex items-center justify-center text-surface-400 group-hover:text-brand-primary transition-all", isExpanded && "rotate-180")}>
+                                <ChevronDown className="w-4 h-4" />
+                             </div>
+                          </div>
+                        </td>
+                      </tr>
+                      {isExpanded && row.visibleExpenses.map((expense: IExpense) => {
+                        const category = categoryMap.get(expense.categoryId || '');
+                        return (
+                          <tr key={expense.id} className={cn("bg-white/[0.02] border-l-2 border-brand-primary/30 group", selectedIds.has(expense.id) && "bg-brand-primary/5")}>
+                            <td className="px-6 py-3 pl-8">
+                               <button 
+                                onClick={() => toggleSelect(expense.id)}
+                                className={cn(
+                                  "w-4 h-4 rounded border transition-all flex items-center justify-center",
+                                  selectedIds.has(expense.id) 
+                                    ? "bg-brand-primary border-brand-primary text-white" 
+                                    : "border-white/10 hover:border-brand-primary"
+                                )}
+                               >
+                                 {selectedIds.has(expense.id) && <Check className="w-2.5 h-2.5" />}
+                               </button>
+                            </td>
+                            <td className="px-6 py-3 pl-4">
+                              <div className="flex items-center gap-3">
+                                <span className="text-[11px] font-bold text-surface-300">{expense.description || 'No Description'}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-3">
+                               <span 
+                                className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest"
+                                style={{ backgroundColor: `${category?.color || '#334155'}20`, color: category?.color || '#94a3b8' }}
+                               >
+                                 {category?.name || 'Uncategorized'}
+                               </span>
+                            </td>
+                            <td className="px-6 py-3"></td>
+                            <td className="px-6 py-3"></td>
+                            <td className="px-6 py-3 text-right">
+                              <span className="text-[11px] font-black text-surface-200">-{formatNumber(expense.amount)} €</span>
+                            </td>
+                            <td className="px-6 py-3">
+                              <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); handleEdit(expense); }}
+                                  className="w-6 h-6 rounded-md bg-brand-primary/10 flex items-center justify-center hover:bg-brand-primary hover:text-white text-brand-primary transition-all"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); handleDelete(expense.id, deletingId === expense.id); }}
+                                  className={cn(
+                                    "px-3 h-6 rounded-md flex items-center justify-center gap-1.5 transition-all text-[10px] font-black uppercase tracking-widest",
+                                    deletingId === expense.id 
+                                      ? "bg-danger text-white shadow-glow" 
+                                      : "bg-danger/10 text-danger hover:bg-danger hover:text-white"
+                                  )}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  {deletingId === expense.id && "Confirm?"}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </Fragment>
+                  );
+                }
+
+                const expense = row.expense;
                 const category = categoryMap.get(expense.categoryId || '');
                 const account = accountMap.get(expense.accountId || '');
                 const store = storeMap.get(expense.storeId || '');
                 
                 return (
-                  <tr key={expense.id} className="hover:bg-white/5 transition-colors group">
+                  <tr key={expense.id} className={cn("hover:bg-white/5 transition-colors group", selectedIds.has(expense.id) && "bg-brand-primary/5")}>
+                    <td className="px-6 py-4">
+                       <button 
+                        onClick={() => toggleSelect(expense.id)}
+                        className={cn(
+                          "w-5 h-5 rounded border-2 transition-all flex items-center justify-center",
+                          selectedIds.has(expense.id) 
+                            ? "bg-brand-primary border-brand-primary text-white" 
+                            : "border-white/20 hover:border-brand-primary"
+                        )}
+                       >
+                         {selectedIds.has(expense.id) && <Check className="w-3 h-3" />}
+                       </button>
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-surface-900 flex items-center justify-center font-bold text-surface-400 group-hover:scale-110 transition-transform">
@@ -404,11 +708,16 @@ export function DesktopDashboard() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDelete(expense.id)}
-                          className="w-8 h-8 rounded-lg bg-danger/10 flex items-center justify-center hover:bg-danger hover:text-white text-danger active:scale-95 transition-all"
-                          aria-label="Delete"
+                          onClick={() => handleDelete(expense.id, deletingId === expense.id)}
+                          className={cn(
+                            "px-4 h-8 rounded-lg flex items-center justify-center gap-2 transition-all text-[10px] font-black uppercase tracking-widest",
+                            deletingId === expense.id 
+                              ? "bg-danger text-white shadow-glow" 
+                              : "bg-danger/10 text-danger hover:bg-danger hover:text-white"
+                          )}
                         >
                           <Trash2 className="w-4 h-4" />
+                          {deletingId === expense.id && "Confirm?"}
                         </button>
                       </div>
                     </td>
@@ -420,6 +729,50 @@ export function DesktopDashboard() {
         </div>
       </div>
       
+      {/* ─── BULK ACTIONS BAR ─── */}
+      <AnimatePresence>
+        {selectedIds.size > 0 && (
+          <motion.div 
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100]"
+          >
+            <div className="glass-card bg-surface-900/80 border-brand-primary/20 p-2 pl-6 flex items-center gap-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] min-w-[320px]">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary font-black text-xs">
+                  {selectedIds.size}
+                </div>
+                <span className="text-sm font-bold text-surface-200">Selected</span>
+              </div>
+              
+              <div className="h-8 w-px bg-white/5" />
+              
+              <div className="flex items-center gap-3 pr-2">
+                <button 
+                  onClick={() => setSelectedIds(new Set())}
+                  className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-surface-500 hover:text-surface-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={() => handleBulkDelete(isDeletingBulk)}
+                  className={cn(
+                    "px-6 py-2.5 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all",
+                    isDeletingBulk 
+                      ? "bg-danger text-white shadow-glow animate-pulse" 
+                      : "bg-danger/10 text-danger hover:bg-danger hover:text-white"
+                  )}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {isDeletingBulk ? "Confirm Delete?" : "Delete Selected"}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ─── ADD EXPENSE MODAL TRIGGER (Floating for Desktop too if needed, but we have the button) ─── */}
     </div>
   );

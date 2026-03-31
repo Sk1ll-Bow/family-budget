@@ -19,6 +19,8 @@ export interface IReceiptPosition {
   storeName: string;
   /** Extra details: quantity, weight, unit price, discounts, etc. */
   details: string;
+  /** Detected payment method: "Card", "Cash", or "Unknown" */
+  paymentMethod: 'Card' | 'Cash' | 'Unknown';
 }
 
 /**
@@ -53,16 +55,17 @@ export async function analyzeReceiptWithGemini(
 ): Promise<IReceiptPosition[]> {
   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-  const categoriesContext = existingCategoryNames.length 
-    ? `\n    EXISTING CATEGORIES (Use these if they match closely): ${existingCategoryNames.join(', ')}` 
+  const categoriesContext = existingCategoryNames.length
+    ? `\n    EXISTING CATEGORIES (Use these if they match closely): ${existingCategoryNames.join(', ')}`
     : '';
 
-  const storesContext = existingStoreNames.length 
-    ? `\n    EXISTING STORES (Use these if they match closely): ${existingStoreNames.join(', ')}` 
+  const storesContext = existingStoreNames.length
+    ? `\n    EXISTING STORES (Use these if they match closely): ${existingStoreNames.join(', ')}`
     : '';
 
   const prompt = `
     You are a receipt analyzer. Analyze this receipt image and extract ONLY individual purchased items/products.
+    ALSO, identify the payment method used for the entire receipt (Card or Cash).
 
     CRITICAL RULES:
     - Do NOT include receipt totals, subtotals, tax lines, or summary lines as separate items.
@@ -78,6 +81,7 @@ export async function analyzeReceiptWithGemini(
     4. "categorySuggestion" — MUST be an exact match from EXISTING CATEGORIES if appropriate. If no existing category fits well, suggest a new short broad category in Russian (e.g., "Продукты", "Транспорт", "Здоровье").
     5. "storeName" — MUST be an exact match from EXISTING STORES if appropriate. If no existing store fits, extract the store/shop name from the receipt header.
     6. "details" — quantity, weight, unit price, discount info (e.g. "2 x €1.50, discount -€0.30")
+    7. "paymentMethod" — analyze signs on the receipt (Auth code, Card number, "CARD", "CASH", "НАЛИЧНЫЕ", "БАНКОВСКАЯ КАРТА", etc.) and return "Card", "Cash", or "Unknown".
 
     Return ONLY a JSON array, no other text:
     [
@@ -87,7 +91,8 @@ export async function analyzeReceiptWithGemini(
         "spentAt": "2026-03-26T14:30:00Z",
         "categorySuggestion": "Food",
         "storeName": "Lidl",
-        "details": "1 x €1.29"
+        "details": "1 x €1.29",
+        "paymentMethod": "Card"
       }
     ]
   `;

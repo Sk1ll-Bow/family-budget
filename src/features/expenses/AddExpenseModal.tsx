@@ -135,6 +135,25 @@ export function AddExpenseModal({ onAdded }: IAddExpenseModalProps) {
       for (const pos of positions) {
         let posCategoryId = selectedCategory;
         let posStoreId: string | null = null;
+        let posAccountId = selectedAccount;
+
+        // Auto-match Account based on paymentMethod
+        if (pos.paymentMethod && pos.paymentMethod !== 'Unknown') {
+          const method = pos.paymentMethod.toLowerCase();
+          const matchedAccount = accounts.find(acc => {
+            const name = acc.name.toLowerCase();
+            if (method === 'card') {
+              return name.includes('card') || name.includes('карт') || name.includes('банк') || name.includes('visa') || name.includes('mastercard');
+            }
+            if (method === 'cash') {
+              return name.includes('cash') || name.includes('налич') || name.includes('кошелек') || name.includes('wallet');
+            }
+            return false;
+          });
+          if (matchedAccount) {
+            posAccountId = matchedAccount.id;
+          }
+        }
 
         // Auto-match or auto-create store
         if (pos.storeName) {
@@ -182,7 +201,7 @@ export function AddExpenseModal({ onAdded }: IAddExpenseModalProps) {
           userId: user.id,
           amount: pos.amount,
           categoryId: posCategoryId,
-          accountId: selectedAccount,
+          accountId: posAccountId,
           storeId: posStoreId,
           description: descParts.join(' '),
           spentAt: pos.spentAt,

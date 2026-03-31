@@ -66,6 +66,7 @@ export async function addBatchExpenses(paramsList: {
   spentAt: string;
 }[]): Promise<IExpense[]> {
   const now = new Date().toISOString();
+  const receiptId = uuidv4();
   const expenses: IExpense[] = paramsList.map((params) => ({
     id: uuidv4(),
     familyId: params.familyId,
@@ -78,6 +79,7 @@ export async function addBatchExpenses(paramsList: {
     spentAt: params.spentAt,
     createdAt: now,
     syncStatus: 'pending' as SyncStatus,
+    receiptId: receiptId,
   }));
 
   // Write all to Dexie in one batch
@@ -166,6 +168,19 @@ export async function deleteExpense(id: string): Promise<void> {
       await supabase.from('expenses').delete().eq('id', id);
     } catch {
       // Orphaned cloud record will be handled by sync reconciliation
+    }
+  }
+}
+
+/** Delete multiple expenses at once. */
+export async function deleteBatchExpenses(ids: string[]): Promise<void> {
+  await db.expenses.bulkDelete(ids);
+
+  if (navigator.onLine) {
+    try {
+      await supabase.from('expenses').delete().in('id', ids);
+    } catch {
+      // Will be handled by sync reconciliation
     }
   }
 }

@@ -50,6 +50,19 @@ export async function addCategory(
   }
 }
 
+/** Update a category's name, color and icon. */
+export async function updateCategory(
+  id: string,
+  name: string,
+  color: string,
+  icon?: string
+): Promise<void> {
+  const patch: Record<string, unknown> = { name, color };
+  if (icon) patch.icon = icon;
+  await db.categories.update(id, patch);
+  await supabase.from('categories').update(patch).eq('id', id);
+}
+
 /** Delete a category. */
 export async function deleteCategory(id: string): Promise<void> {
   await db.categories.delete(id);

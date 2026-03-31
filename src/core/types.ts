@@ -64,6 +64,7 @@ export interface IExpense {
   spentAt: string;
   createdAt: string;
   syncStatus: SyncStatus;
+  receiptId?: string | null;
 }
 
 // ─── User Profile ───────────────────────────────────────
@@ -103,6 +104,7 @@ export interface IExpenseRow {
   description: string;
   spent_at: string;
   created_at: string;
+  receipt_id?: string | null;
 }
 
 /** Raw Supabase row for families table */
@@ -157,6 +159,7 @@ export function mapExpenseFromRow(row: IExpenseRow): IExpense {
     spentAt: row.spent_at,
     createdAt: row.created_at,
     syncStatus: 'synced',
+    receiptId: row.receipt_id,
   };
 }
 
@@ -171,6 +174,7 @@ export function mapExpenseToRow(expense: IExpense): Omit<IExpenseRow, 'created_a
     store_id: expense.storeId,
     description: expense.description,
     spent_at: expense.spentAt,
+    receipt_id: expense.receiptId,
   };
 }
 

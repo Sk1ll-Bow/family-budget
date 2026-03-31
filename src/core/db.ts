@@ -27,7 +27,7 @@ export class FamilyBudgetDB extends Dexie {
 
     this.version(3).stores({
       stores: 'id, familyId',
-      expenses: 'id, familyId, userId, categoryId, accountId, storeId, spentAt, syncStatus',
+      expenses: 'id, familyId, userId, categoryId, accountId, storeId, spentAt, syncStatus, receiptId',
     }).upgrade(tx => {
       // Adding storeId to existing expenses as null if needed
       return tx.table('expenses').toCollection().modify(expense => {
