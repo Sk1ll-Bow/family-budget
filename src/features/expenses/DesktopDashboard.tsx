@@ -14,6 +14,8 @@ import {
   Trash2,
   ReceiptText,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Check,
   X
 } from 'lucide-react';
@@ -59,9 +61,13 @@ export function DesktopDashboard() {
 
   // ─── DATA FETCHING ───
 
-  const now = new Date();
-  const monthStart = startOfMonth(now).toISOString();
-  const monthEnd = endOfMonth(now).toISOString();
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const monthStart = startOfMonth(currentDate).toISOString();
+  const monthEnd = endOfMonth(currentDate).toISOString();
+
+  const prevMonth = () => setCurrentDate((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));
+  const nextMonth = () => setCurrentDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1));
+  const goToToday = () => setCurrentDate(new Date());
 
   const expenses = useLiveQuery(
     () => familyId ? db.expenses.where('familyId').equals(familyId).toArray() : [],
@@ -155,8 +161,8 @@ export function DesktopDashboard() {
     [expenses, monthStart, monthEnd]
   );
 
-  const lastMonthStart = startOfMonth(subMonths(now, 1)).toISOString();
-  const lastMonthEnd = endOfMonth(subMonths(now, 1)).toISOString();
+  const lastMonthStart = startOfMonth(subMonths(currentDate, 1)).toISOString();
+  const lastMonthEnd = endOfMonth(subMonths(currentDate, 1)).toISOString();
   const lastMonthExpenses = useMemo(() => 
     (expenses ?? []).filter(e => e.spentAt >= lastMonthStart && e.spentAt <= lastMonthEnd),
     [expenses, lastMonthStart, lastMonthEnd]
@@ -166,11 +172,11 @@ export function DesktopDashboard() {
   const totalLast = lastMonthExpenses.reduce((sum, e) => sum + e.amount, 0);
   const percentChange = totalLast > 0 ? ((totalCurrent - totalLast) / totalLast) * 100 : 0;
 
-  // Chart Data: Last 30 days
+  // Chart Data: Full Month View
   const chartData = useMemo(() => {
     const days = eachDayOfInterval({
-      start: subMonths(now, 1),
-      end: now
+      start: startOfMonth(currentDate),
+      end: endOfMonth(currentDate)
     });
 
     return days.map(day => {
@@ -183,7 +189,7 @@ export function DesktopDashboard() {
         amount: dayTotal
       };
     });
-  }, [expenses]);
+  }, [expenses, currentDate]);
 
   // Category Breakdown for current month
   const categoryStats = useMemo(() => {
@@ -212,7 +218,7 @@ export function DesktopDashboard() {
   const storeMap = useMemo(() => new Map((stores ?? []).map((s) => [s.id, s])), [stores]);
 
   const displayedExpenses = useMemo(() => {
-    let filtered = (expenses ?? []);
+    let filtered = currentMonthExpenses;
 
     // Filter by search query
     if (searchQuery.trim()) {
@@ -229,7 +235,7 @@ export function DesktopDashboard() {
     
     // Slice if not showing all
     return showAll ? sorted : sorted.slice(0, 8);
-  }, [expenses, showAll, searchQuery, categoryMap, storeMap]);
+  }, [showAll, searchQuery, categoryMap, storeMap, currentMonthExpenses]);
 
   const toggleReceipt = (receiptId: string) => {
     setExpandedReceipts(prev => {
@@ -313,6 +319,39 @@ export function DesktopDashboard() {
         </div>
 
         <div className="flex items-center gap-4">
+          {/* Month Selector */}
+          <div className="flex items-center gap-1 glass p-1 rounded-2xl">
+            <button
+              onClick={prevMonth}
+              className="w-10 h-10 rounded-xl hover:bg-white/5 flex items-center justify-center transition-colors text-surface-400 hover:text-brand-primary"
+              title="Previous Month"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            
+            <button 
+              onClick={goToToday}
+              className="px-4 h-10 flex flex-col items-center justify-center min-w-[120px] hover:bg-white/5 rounded-xl transition-colors group"
+            >
+              <span className="text-[10px] font-black text-surface-500 uppercase tracking-[0.2em] leading-none mb-1 group-hover:text-brand-primary transition-colors">
+                {format(currentDate, 'yyyy')}
+              </span>
+              <span className="text-sm font-black text-surface-50 tracking-tight leading-none">
+                {format(currentDate, 'MMMM')}
+              </span>
+            </button>
+
+            <button
+              onClick={nextMonth}
+              className="w-10 h-10 rounded-xl hover:bg-white/5 flex items-center justify-center transition-colors text-surface-400 hover:text-brand-primary"
+              title="Next Month"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="h-8 w-px bg-white/5 mx-2" />
+          
           <button className="relative w-12 h-12 rounded-2xl glass flex items-center justify-center text-surface-400 hover:text-brand-primary transition-all">
             <Bell className="w-5 h-5" />
             <span className="absolute top-3 right-3 w-2 h-2 bg-brand-primary rounded-full shadow-glow" />
@@ -346,7 +385,7 @@ export function DesktopDashboard() {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h2 className="text-xl font-black text-surface-50 tracking-tight">Spending Overview</h2>
-              <p className="text-sm text-surface-500 font-medium">Daily expenses over the last 30 days</p>
+              <p className="text-sm text-surface-500 font-medium">Daily expenses for {format(currentDate, 'MMMM yyyy')}</p>
             </div>
             <div className="flex items-center gap-2">
                <button className="btn btn-secondary btn-sm rounded-xl">
@@ -358,7 +397,7 @@ export function DesktopDashboard() {
             </div>
           </div>
 
-          <div className="flex-1 w-full -ml-4">
+          <div className="flex-1 w-full -ml-4 min-w-0 min-h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
                 <defs>
@@ -483,13 +522,13 @@ export function DesktopDashboard() {
       <div className="glass-card p-0 overflow-hidden">
         <div className="p-6 flex items-center justify-between border-b border-white/5">
           <h2 className="text-xl font-black text-surface-50 tracking-tight">
-            {showAll ? 'All Transactions' : 'Recent Transactions'}
+            Transactions for {format(currentDate, 'MMMM yyyy')}
           </h2>
           <button 
             onClick={() => setShowAll(!showAll)}
             className="text-brand-primary text-xs font-black uppercase tracking-widest hover:underline transition-all"
           >
-            {showAll ? 'Show Recent' : 'See All Transactions'}
+            {showAll ? 'Show Fewer' : 'See All in Month'}
           </button>
         </div>
 

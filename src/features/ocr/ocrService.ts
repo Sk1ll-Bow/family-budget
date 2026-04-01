@@ -20,25 +20,21 @@ export async function processReceiptWithGemini(
   try {
     const positions = await analyzeReceiptWithGemini(file, existingCategoryNames, existingStoreNames);
     
-    // Total is usually the last one or the largest one.
-    // For now, let's just return the first one as the default, but include all positions.
+    // Total is usually the first one or the largest one.
     const total = positions.length > 0 ? positions[0].amount : null;
 
     return {
       rawText: JSON.stringify(positions),
       detectedAmount: total,
-      confidence: 0.95, // Gemini is usually very high confidence
+      confidence: 0.95,
       candidates: positions.map(p => p.amount),
       positions: positions
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('[OCR-Gemini] Error:', error);
-    return {
-      rawText: '',
-      detectedAmount: null,
-      confidence: 0,
-      candidates: []
-    };
+    // Propagate the specific error instead of a generic empty result
+    // This allows UI to show specific quota logic
+    throw error;
   }
 }
 // ... existing code ...

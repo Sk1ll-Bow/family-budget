@@ -8,6 +8,7 @@ import { useModalStore } from '../../core/useModalStore';
 import { processReceiptWithGemini, type OcrResult } from './ocrService';
 import type { IReceiptPosition } from './geminiService';
 import { formatCurrency } from '../../core/formatters';
+import { cn } from '../../core/cn';
 
 export const MODAL_RECEIPT_SCANNER = 'receipt-scanner';
 
@@ -24,6 +25,7 @@ export function ReceiptScanner({ onPositionsConfirmed, existingCategoryNames = [
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<OcrResult | null>(null);
+  const [scanError, setScanError] = useState<{ message: string, isQuota: boolean } | null>(null);
   /** Mutable list of positions the user can remove items from */
   const [positions, setPositions] = useState<IReceiptPosition[]>([]);
   const [isAdding, setIsAdding] = useState(false);
@@ -41,8 +43,15 @@ export function ReceiptScanner({ onPositionsConfirmed, existingCategoryNames = [
       const ocrResult = await processReceiptWithGemini(file, existingCategoryNames, existingStoreNames);
       setResult(ocrResult);
       setPositions(ocrResult.positions ?? []);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Gemini error:', err);
+      const isQuota = err instanceof Error && (err as any).isQuotaExceeded;
+      const message = err instanceof Error ? err.message : 'Analysis failed. Please try another photo.';
+      
+      setScanError({
+        message,
+        isQuota: !!isQuota
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -66,6 +75,7 @@ export function ReceiptScanner({ onPositionsConfirmed, existingCategoryNames = [
   const reset = () => {
     setResult(null);
     setPositions([]);
+    setScanError(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -98,10 +108,10 @@ export function ReceiptScanner({ onPositionsConfirmed, existingCategoryNames = [
             </p>
             <button
               type="button"
-              className="btn btn-primary btn-lg w-full"
-              onClick={() => fileInputRef.current?.click()}
+              className={cn("btn btn-primary btn-lg w-full", scanError?.isQuota && "opacity-50 pointer-events-none")}
+              onClick={() => !scanError?.isQuota && fileInputRef.current?.click()}
             >
-              Take Photo
+              {scanError?.isQuota ? "Limit Reached" : "Take Photo"}
             </button>
           </div>
         )}
@@ -213,12 +223,18 @@ export function ReceiptScanner({ onPositionsConfirmed, existingCategoryNames = [
               </div>
             )}
 
-            {/* No results */}
-            {positions.length === 0 && (
+            {/* Error or No results */}
+            {(scanError || positions.length === 0) && (
               <div className="text-center py-6">
-                <AlertCircle className="w-12 h-12 text-warning mx-auto mb-3" />
-                <p className="text-surface-100 font-medium mb-1">Could not extract items</p>
-                <p className="text-surface-400 text-sm mb-6">Try again or enter the amount manually.</p>
+                <AlertCircle className={cn("w-12 h-12 mx-auto mb-3", scanError?.isQuota ? "text-danger" : "text-warning")} />
+                <p className="text-surface-100 font-medium mb-1">
+                  {scanError?.isQuota ? 'Quota Exceeded' : (scanError?.message || 'Could not extract items')}
+                </p>
+                <p className="text-surface-400 text-sm mb-6 max-w-[280px] mx-auto">
+                  {scanError?.isQuota 
+                    ? "Gemini AI daily limit reached. Please try again tomorrow or enter items manually."
+                    : "Try again with a better photo or enter the expense manually."}
+                </p>
               </div>
             )}
 

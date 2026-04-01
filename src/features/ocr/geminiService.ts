@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { logError } from '../../services/errorService';
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(API_KEY);
@@ -99,7 +100,29 @@ export async function analyzeReceiptWithGemini(
 
   try {
     const imagePart = await fileToGenerativePart(imageFile);
-    const result = await model.generateContent([prompt, imagePart]);
+    
+    let result;
+    let attempts = 0;
+    const maxAttempts = 2;
+    
+    while (attempts < maxAttempts) {
+      try {
+        result = await model.generateContent([prompt, imagePart]);
+        break; 
+      } catch (err: any) {
+        attempts++;
+        const isTransient = err.message?.includes('503') || err.message?.includes('overloaded');
+        if (isTransient && attempts < maxAttempts) {
+          console.warn(`[Gemini] Transient error, retrying attempt ${attempts}...`);
+          await new Promise(resolve => setTimeout(resolve, 1500 * attempts));
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    if (!result) throw new Error('No result from Gemini after retries.');
+
     const response = await result.response;
     const text = response.text();
 
@@ -110,8 +133,18 @@ export async function analyzeReceiptWithGemini(
     }
 
     throw new Error('Could not parse JSON from Gemini response');
-  } catch (error) {
-    console.error('[Gemini] Error analyzing receipt:', error);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Gemini Analysis Failed';
+    const stack = error instanceof Error ? error.stack : undefined;
+    
+    const errorId = await logError(message, stack);
+    console.error(`[Gemini] Error logging entry: ${errorId}`, error);
+    
+    // Add custom property to error to identify it as a quota error
+    if (message.includes('429') || message.includes('quota')) {
+      (error as any).isQuotaExceeded = true;
+    }
+    
     throw error;
   }
 }

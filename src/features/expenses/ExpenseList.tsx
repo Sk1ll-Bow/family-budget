@@ -162,15 +162,40 @@ export function ExpenseList() {
         ))}
       </section>
 
-      {/* Month Navigation */}
+      {/* ─── MONTH NAVIGATION ─── */}
+      <section className="flex items-center justify-between glass p-2 rounded-[24px]">
+        <button 
+          onClick={prevMonth}
+          className="w-12 h-12 rounded-2xl flex items-center justify-center text-surface-400 active:scale-90 transition-transform"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+
+        <button 
+          onClick={() => setCurrentDate(new Date())}
+          className="flex flex-col items-center flex-1"
+        >
+          <span className="text-[10px] font-black text-surface-500 uppercase tracking-widest leading-none mb-1">
+            {format(currentDate, 'yyyy')}
+          </span>
+          <span className="text-sm font-black text-surface-50 uppercase tracking-[0.1em]">
+            {format(currentDate, 'MMMM')}
+          </span>
+        </button>
+
+        <button 
+          onClick={nextMonth}
+          className="w-12 h-12 rounded-2xl flex items-center justify-center text-surface-400 active:scale-90 transition-transform"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </section>
+
       <div className="flex items-center justify-between px-1">
         <h2 className="text-lg font-black text-surface-50 tracking-tight flex items-center gap-2">
-          Latest Transaction
-          <div className="w-2 h-2 rounded-full bg-brand-primary animate-pulse" />
+          {format(currentDate, 'MMMM')} Transactions
+          <div className={cn("w-2 h-2 rounded-full bg-brand-primary", isLoading ? "animate-pulse" : "")} />
         </h2>
-        <button className="text-[10px] font-black text-brand-primary uppercase tracking-widest hover:underline cursor-pointer">
-          View All
-        </button>
       </div>
 
 

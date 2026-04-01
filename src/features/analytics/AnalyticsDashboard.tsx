@@ -130,7 +130,7 @@ export function AnalyticsDashboard() {
                 <EmptyChart />
               ) : (
                 <>
-                  <div className="relative" style={{ height: 240 }}>
+                  <div className="relative min-w-0 w-full" style={{ height: 240 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -214,7 +214,7 @@ export function AnalyticsDashboard() {
               {monthData.every((m) => m.total === 0) ? (
                 <EmptyChart />
               ) : (
-                <div style={{ height: 280 }}>
+                <div className="min-w-0 w-full" style={{ height: 280 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={monthData} barCategoryGap="20%">
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
