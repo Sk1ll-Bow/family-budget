@@ -132,14 +132,23 @@ export function AddExpenseModal({ onAdded }: IAddExpenseModalProps) {
 
       const paramsList = [];
       
+      // Determine common store and payment method for the whole receipt 
+      // (Gemini sometimes only attaches it to the first item)
+      const commonStoreName = positions.find(p => p.storeName)?.storeName;
+      const commonPaymentMethod = positions.find(p => p.paymentMethod && p.paymentMethod !== 'Unknown')?.paymentMethod;
+      
       for (const pos of positions) {
         let posCategoryId = selectedCategory;
         let posStoreId: string | null = null;
         let posAccountId = selectedAccount;
 
         // Auto-match Account based on paymentMethod
-        if (pos.paymentMethod && pos.paymentMethod !== 'Unknown') {
-          const method = pos.paymentMethod.toLowerCase();
+        const methodToUse = (pos.paymentMethod && pos.paymentMethod !== 'Unknown') 
+          ? pos.paymentMethod 
+          : commonPaymentMethod;
+
+        if (methodToUse && methodToUse !== 'Unknown') {
+          const method = methodToUse.toLowerCase();
           const matchedAccount = accounts.find(acc => {
             const name = acc.name.toLowerCase();
             if (method === 'card') {
@@ -156,13 +165,14 @@ export function AddExpenseModal({ onAdded }: IAddExpenseModalProps) {
         }
 
         // Auto-match or auto-create store
-        if (pos.storeName) {
-          const storeNameLower = pos.storeName.toLowerCase().trim();
+        const storeToUse = pos.storeName || commonStoreName;
+        if (storeToUse) {
+          const storeNameLower = storeToUse.toLowerCase().trim();
           let storeMatch: IStore | undefined | null = currentStores.find(s => s.name.toLowerCase() === storeNameLower);
           
           if (!storeMatch) {
             // Create a new store on the fly
-            storeMatch = await addStore(familyId, pos.storeName.trim());
+            storeMatch = await addStore(familyId, storeToUse.trim());
             if (storeMatch) {
                currentStores.push(storeMatch);
             }

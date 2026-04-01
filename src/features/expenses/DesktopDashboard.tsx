@@ -40,6 +40,8 @@ import { ExpenseRow } from './ExpenseRow';
 import { formatCurrency, formatNumber } from '../../core/formatters';
 import { deleteExpense, deleteBatchExpenses } from './expenseService';
 import { MODAL_EDIT_EXPENSE } from './EditExpenseModal';
+import { ExportPeriodModal, MODAL_EXPORT_PERIOD } from './ExportPeriodModal';
+import { exportExpenses } from './exportService';
 import { toast } from 'sonner';
 import type { IExpense } from '../../core/types';
 
@@ -58,6 +60,8 @@ export function DesktopDashboard() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isDeletingBulk, setIsDeletingBulk] = useState(false);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // ─── DATA FETCHING ───
 
@@ -154,6 +158,20 @@ export function DesktopDashboard() {
 
   const handleEdit = (expense: IExpense) => {
     openModal(MODAL_EDIT_EXPENSE, { expense });
+  };
+
+  const handleExportAll = async () => {
+    if (!familyId) return;
+    setIsExporting(true);
+    setExportMenuOpen(false);
+    try {
+      await exportExpenses(familyId, undefined, undefined, 'excel');
+      toast.success('Successfully exported all data as Excel');
+    } catch (e) {
+      toast.error('Failed to export data');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const currentMonthExpenses = useMemo(() => 
@@ -391,9 +409,53 @@ export function DesktopDashboard() {
                <button className="btn btn-secondary btn-sm rounded-xl">
                  <Filter className="w-4 h-4 mr-2" /> Filter
                </button>
-               <button className="btn btn-secondary btn-sm rounded-xl">
-                 <Download className="w-4 h-4 mr-2" /> Export
-               </button>
+               <div className="relative">
+                 <button 
+                   onClick={() => setExportMenuOpen(!exportMenuOpen)}
+                   className={cn(
+                     "btn btn-secondary btn-sm rounded-xl transition-all",
+                     exportMenuOpen ? "bg-white/10" : ""
+                   )}
+                 >
+                   <Download className="w-4 h-4 mr-2" /> 
+                   {isExporting ? 'Exporting...' : 'Export'}
+                   <ChevronDown className={cn("w-4 h-4 ml-2 transition-transform", exportMenuOpen && "rotate-180")} />
+                 </button>
+                 
+                 <AnimatePresence>
+                   {exportMenuOpen && (
+                     <>
+                       <div 
+                         className="fixed inset-0 z-40" 
+                         onClick={() => setExportMenuOpen(false)} 
+                       />
+                       <motion.div
+                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                         animate={{ opacity: 1, y: 0, scale: 1 }}
+                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                         className="absolute right-0 top-full mt-2 w-48 glass-card bg-surface-900/90 border border-white/5 p-1 rounded-xl z-50 shadow-2xl overflow-hidden"
+                       >
+                         <button 
+                           onClick={handleExportAll}
+                           disabled={isExporting}
+                           className="w-full px-3 py-2.5 text-left text-sm font-bold text-surface-50 hover:bg-white/5 rounded-lg active:bg-white/10 transition-colors"
+                         >
+                           Export all (Excel)
+                         </button>
+                         <button 
+                           onClick={() => {
+                             setExportMenuOpen(false);
+                             openModal(MODAL_EXPORT_PERIOD);
+                           }}
+                           className="w-full px-3 py-2.5 text-left text-sm font-bold text-surface-50 hover:bg-white/5 rounded-lg active:bg-white/10 transition-colors"
+                         >
+                           Choose period
+                         </button>
+                       </motion.div>
+                     </>
+                   )}
+                 </AnimatePresence>
+               </div>
             </div>
           </div>
 
@@ -813,6 +875,7 @@ export function DesktopDashboard() {
       </AnimatePresence>
 
       {/* ─── ADD EXPENSE MODAL TRIGGER (Floating for Desktop too if needed, but we have the button) ─── */}
+      <ExportPeriodModal />
     </div>
   );
 }
